@@ -15,10 +15,12 @@ object BuildSettings {
   import BuildDependencies._
 
   val SCALA_VERSION = "2.11.4"
+  val APP_VERSION = "0.1"
 
   lazy val commonSettings = Seq(
-    scalaVersion := SCALA_VERSION,
-    resolvers ++= Seq(
+    scalaVersion        := SCALA_VERSION,
+    version             := APP_VERSION,
+    resolvers           ++= Seq(
       "Spray Repository"      at "http://repo.spray.io",
       "Typesafe Repository"   at "http://repo.typesafe.com/typesafe/releases/"
     )
@@ -28,7 +30,7 @@ object BuildSettings {
     libraryDependencies ++= Seq(
       sprayRouting
     )
-  ) ++ commonSettings
+  )
 
   lazy val serverSettings = Seq(
     libraryDependencies ++= Seq(
@@ -38,7 +40,7 @@ object BuildSettings {
       akkaActor,
       scalaXml
     )
-  ) ++ commonSettings
+  )
 }
 
 
@@ -48,12 +50,15 @@ object SprayHawkBuild extends Build {
   lazy val main = Project(
     id = "spray-hawk",
     base = file(".")
-  ) aggregate(client, server, lib)
+  )
+    .aggregate(client, server, lib)
+    .settings(commonSettings: _*)
 
   lazy val lib = Project(
     id = "spray-hawk-lib",
     base = file("lib")
   )
+    .settings(commonSettings: _*)
     .settings(libSettings: _*)
 
   lazy val server = Project(
@@ -61,6 +66,7 @@ object SprayHawkBuild extends Build {
     base = file("server")
   )
     .dependsOn(lib)
+    .settings(commonSettings: _*)
     .settings(serverSettings: _*)
 
   lazy val client = Project(
@@ -68,5 +74,6 @@ object SprayHawkBuild extends Build {
     base = file("client")
   )
     .dependsOn(lib)
+    .settings(commonSettings: _*)
     .settings(commonSettings: _*)
 }
