@@ -4,11 +4,13 @@ import Keys._
 object BuildDependencies {
   val SPRAY_VERSION = "1.3.1"
 
-  val sprayRouting = "io.spray"             %% "spray-routing"  % SPRAY_VERSION
-  val sprayCan = "io.spray"                 %% "spray-can"      % SPRAY_VERSION
-  val sprayIo = "io.spray"                  %% "spray-io"       % SPRAY_VERSION
-  val scalaXml = "org.scala-lang.modules"   %% "scala-xml"      % "1.0.2"
-  val akkaActor = "com.typesafe.akka"       %% "akka-actor"     % "2.3.6"
+  val sprayRouting =    "io.spray"                  %% "spray-routing"  % SPRAY_VERSION
+  val sprayCan =        "io.spray"                  %% "spray-can"      % SPRAY_VERSION
+  val sprayIo =         "io.spray"                  %% "spray-io"       % SPRAY_VERSION
+  val scalaXml =        "org.scala-lang.modules"    %% "scala-xml"      % "1.0.2"
+  val akkaActor =       "com.typesafe.akka"         %% "akka-actor"     % "2.3.6"
+//  val commonsCodec =    "commons-codec"             %  "commons-codec"  % "1.10"
+  val specs2 =          "org.specs2"                %% "specs2-core"    % "2.4.13"        % "test"
 }
 
 object BuildSettings {
@@ -28,8 +30,10 @@ object BuildSettings {
 
   lazy val libSettings = Seq(
     libraryDependencies ++= Seq(
-      sprayRouting
-    )
+      sprayRouting,
+      specs2
+    ),
+    scalacOptions in Test ++= Seq("-Yrangepos")
   )
 
   lazy val serverSettings = Seq(
