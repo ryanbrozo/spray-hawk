@@ -53,20 +53,22 @@ import org.parboiled.common.Base64
  *
  *                Hash - Hash of payload as described [[https://github.com/hueniverse/hawk#payload-validation here]]
  *
+ * @param payload Optional payload data if Hawk MAC calculation should use payload validation
+ *
  */
-case class Hawk(credentials: HawkCredentials, options: HawkOptions) {
-  val HEADER_VERSION = 1
-
+case class Hawk(credentials: HawkCredentials, options: HawkOptions, payload: Option[HawkPayload] = None) {
 
   /**
-   * Produces the normalized request string
-   *
-   * @return Normalized string that will be used for calculating the MAC
+   * Normalized string that will be used for calculating the MAC
    */
   lazy val normalized: String = {
-    import HawkParameters._
+    import com.ryanbrozo.spray.hawk.HawkParameters._
 
     val appDlg = for (app <- options.get(App); dlg <- options.get(Dlg)) yield s"$app\n$dlg\n"
+    val hash = payload match {
+      case Some(p) => p.hash
+      case None => ""
+    }
 
     s"""hawk.$HEADER_VERSION.header
       |${options.getOrElse(Ts, "")}
@@ -75,15 +77,13 @@ case class Hawk(credentials: HawkCredentials, options: HawkOptions) {
       |${options.getOrElse(Uri, "")}
       |${options.getOrElse(Host, "")}
       |${options.getOrElse(Port, "")}
-      |${options.getOrElse(Hash, "")}
+      |$hash
       |${options.getOrElse(Ext, "")}
       |${appDlg.getOrElse("")}""".stripMargin
   }
 
   /**
-   * Calculates the MAC
-   *
-   * @return MAC string
+   * Calculated MAC
    */
   lazy val mac: String = {
     val mac = Mac.getInstance(credentials.algorithm.toString)

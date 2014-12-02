@@ -27,27 +27,43 @@ package com.ryanbrozo.spray
 package object hawk {
 
   /**
+   * Hawk Version
+   */
+  val HEADER_VERSION = 1
+
+  /**
    * List of supported MAC algorithms. Passed as parameter
    * to javax.crypto.Mac.getInstance()
    */
-  object Algorithms extends Enumeration {
+  object MacAlgorithms extends Enumeration {
     val HmacMD5, HmacSHA1, HmacSHA256 = Value
+  }
+
+  /**
+   * List of supported hash algorithms. Passed as parameter
+   * to java.security.MessageDigest.getInstance()
+   */
+  object HashAlgorithms extends Enumeration {
+    val MD5 = Value("MD5")
+    val SHA1 = Value("SHA-1")
+    val SHA256 = Value("SHA-256")
   }
 
   /**
    * Case class representing a principal's Hawk credentials
    *
+   * @param id Key identifier
    * @param key Key that will be used for calculating the MAC
    * @param algorithm Specific algorithm for calculating the MAC. Should be
-   *                    one of [[com.ryanbrozo.spray.hawk.Algorithms]]
+   *                  one of [[com.ryanbrozo.spray.hawk.MacAlgorithms]]
    */
-  case class HawkCredentials(key: String, algorithm: Algorithms.Value)
+  case class HawkCredentials(id: String, key: String, algorithm: MacAlgorithms.Value)
 
   /**
    * List of parameters used for calculating MAC of a request
    */
   object HawkParameters extends Enumeration {
-    val Method, Uri, Host, Port, Ts, Nonce, Hash, Ext, App, Dlg = Value
+    val Method, Uri, Host, Port, Ts, Nonce, Ext, App, Dlg = Value
   }
 
   type HawkOptions = Map[HawkParameters.Value, String]
