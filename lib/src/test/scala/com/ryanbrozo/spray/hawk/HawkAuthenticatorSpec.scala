@@ -32,12 +32,15 @@ import spray.routing._
 import spray.testkit.Specs2RouteTest
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 class HawkAuthenticatorSpec
   extends Specification
   with Specs2RouteTest
   with Directives
   with HttpService {
+
+  implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(60, SECONDS))
 
   def actorRefFactory = system // connect the DSL to the test ActorSystem
 
