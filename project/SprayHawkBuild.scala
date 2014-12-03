@@ -7,6 +7,7 @@ object BuildDependencies {
   val sprayRouting =    "io.spray"                  %% "spray-routing"  % SPRAY_VERSION
   val sprayCan =        "io.spray"                  %% "spray-can"      % SPRAY_VERSION
   val sprayIo =         "io.spray"                  %% "spray-io"       % SPRAY_VERSION
+  val sprayTestKit =    "io.spray"                  %% "spray-testkit"  % SPRAY_VERSION   % "test"
   val scalaXml =        "org.scala-lang.modules"    %% "scala-xml"      % "1.0.2"
   val akkaActor =       "com.typesafe.akka"         %% "akka-actor"     % "2.3.6"
 //  val commonsCodec =    "commons-codec"             %  "commons-codec"  % "1.10"
@@ -31,6 +32,8 @@ object BuildSettings {
   lazy val libSettings = Seq(
     libraryDependencies ++= Seq(
       sprayRouting,
+      akkaActor,
+      sprayTestKit,
       specs2
     ),
     scalacOptions in Test ++= Seq("-Yrangepos")

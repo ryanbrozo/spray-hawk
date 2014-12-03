@@ -24,7 +24,7 @@
 
 package com.ryanbrozo.spray.hawk
 
-import com.ryanbrozo.spray.hawk.HawkParameters._
+import com.ryanbrozo.spray.hawk.HawkOptionKeys._
 import org.specs2.mutable._
 
 /**

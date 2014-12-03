@@ -24,6 +24,8 @@
 
 package com.ryanbrozo.spray
 
+import scala.concurrent.Future
+
 package object hawk {
 
   /**
@@ -62,10 +64,38 @@ package object hawk {
   /**
    * List of parameters used for calculating MAC of a request
    */
-  object HawkParameters extends Enumeration {
+  object HawkOptionKeys extends Enumeration {
     val Method, Uri, Host, Port, Ts, Nonce, Ext, App, Dlg = Value
   }
 
-  type HawkOptions = Map[HawkParameters.Value, String]
+  /**
+   * List of parameters used in Authorization header supplied in a client request
+   */
+  object HawkAuthKeys extends Enumeration {
+    val Id,Ts, Nonce, Ext, App, Dlg, Mac, Hash = Value
+  }
 
+  type HawkOptions = Map[HawkOptionKeys.Value, String]
+
+  type HawkAuthParams = Map[HawkAuthKeys.Value, String]
+
+  /**
+   * Represents a function that retrieves a users HawkCredentials
+   * given a key identifier passed in the Authorization header
+   */
+  type HawkCredentialsRetriever = String => Future[Option[HawkCredentials]]
+
+  /**
+   * Represents a function that retrieves a user object of type U
+   * given an authenticated Hawk key identifier
+   *
+   * @tparam U Type of user to be retrieved
+   */
+  type UserRetriever[U] = Option[String] => Future[Option[U]]
+
+  /**
+   * Represents a function that retrieves the current time expressed in
+   * Unix time
+   */
+  type CurrentTimeProvider = () => Long
 }

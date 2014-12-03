@@ -62,7 +62,7 @@ case class Hawk(credentials: HawkCredentials, options: HawkOptions, payload: Opt
    * Normalized string that will be used for calculating the MAC
    */
   lazy val normalized: String = {
-    import com.ryanbrozo.spray.hawk.HawkParameters._
+    import com.ryanbrozo.spray.hawk.HawkOptionKeys._
 
     val appDlg = for (app <- options.get(App); dlg <- options.get(Dlg)) yield s"$app\n$dlg\n"
     val hash = payload match {
