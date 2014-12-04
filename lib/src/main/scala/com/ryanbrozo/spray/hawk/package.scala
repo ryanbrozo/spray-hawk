@@ -105,4 +105,19 @@ package object hawk {
    * Unix time
    */
   type CurrentTimeProvider = () => Long
+
+  /**
+   * Cryptographic Nonce. See this Wikipedia [[http://en.wikipedia.org/wiki/Cryptographic_nonce article]]
+   */
+  type Nonce = String
+
+  /**
+   * App-specific data
+   */
+  type ExtData = String
+
+  /**
+   * Timestamp type
+   */
+  type TimeStamp = Long
 }

@@ -53,20 +53,20 @@ object HawkClient extends App with HawkRequestBuilding {
   /**
    * Current timestamp
    */
-  def ts = Platform.currentTime
+  implicit def ts: TimeStamp = Platform.currentTime
 
   /**
    * Cryptographic nonce. See this Wikipedia [[http://en.wikipedia.org/wiki/Cryptographic_nonce article]]
    */
-  val nonce = Random.alphanumeric.take(5).mkString
+  implicit def nonce: Nonce = Random.alphanumeric.take(5).mkString
 
   /**
    * App-specific data
    */
-  val ext = "hawk-client"
+  implicit val ext: ExtData = "hawk-client"
 
   val pipeline =
-    addHawkCredentials(hawkCreds, ts, nonce, ext) ~>
+    addHawkCredentials(hawkCreds) ~>
     sendReceive ~>
     unmarshal[String]
 
