@@ -7,10 +7,13 @@ object BuildDependencies {
   val sprayRouting =    "io.spray"                  %% "spray-routing"  % SPRAY_VERSION
   val sprayCan =        "io.spray"                  %% "spray-can"      % SPRAY_VERSION
   val sprayIo =         "io.spray"                  %% "spray-io"       % SPRAY_VERSION
+  val sprayClient =     "io.spray"                  %% "spray-client"   % SPRAY_VERSION
+  val sprayHttp =       "io.spray"                  %% "spray-http"     % SPRAY_VERSION
+  val sprayHttpX =      "io.spray"                  %% "spray-httpx"    % SPRAY_VERSION
+  val sprayUtil =       "io.spray"                  %% "spray-util"     % SPRAY_VERSION
   val sprayTestKit =    "io.spray"                  %% "spray-testkit"  % SPRAY_VERSION   % "test"
   val scalaXml =        "org.scala-lang.modules"    %% "scala-xml"      % "1.0.2"
   val akkaActor =       "com.typesafe.akka"         %% "akka-actor"     % "2.3.6"
-//  val commonsCodec =    "commons-codec"             %  "commons-codec"  % "1.10"
   val specs2 =          "org.specs2"                %% "specs2-core"    % "2.4.13"        % "test"
 }
 
@@ -48,6 +51,17 @@ object BuildSettings {
       scalaXml
     )
   )
+
+  lazy val clientSettings = Seq(
+    libraryDependencies ++= Seq(
+      sprayClient,
+      sprayCan,
+      sprayHttp,
+      sprayHttpX,
+      sprayUtil,
+      akkaActor
+    )
+  )
 }
 
 
@@ -82,5 +96,5 @@ object SprayHawkBuild extends Build {
   )
     .dependsOn(lib)
     .settings(commonSettings: _*)
-    .settings(commonSettings: _*)
+    .settings(clientSettings: _*)
 }

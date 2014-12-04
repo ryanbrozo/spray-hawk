@@ -72,7 +72,14 @@ package object hawk {
    * List of parameters used in Authorization header supplied in a client request
    */
   object HawkAuthKeys extends Enumeration {
-    val Id,Ts, Nonce, Ext, App, Dlg, Mac, Hash = Value
+    val Id = Value("id")
+    val Ts = Value("ts")
+    val Nonce = Value("nonce")
+    val Ext = Value("ext")
+    val App = Value("app")
+    val Dlg = Value("dlg")
+    val Mac = Value("mac")
+    val Hash = Value("hash")
   }
 
   type HawkOptions = Map[HawkOptionKeys.Value, String]
