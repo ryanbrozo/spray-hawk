@@ -52,14 +52,24 @@ package object hawk {
   }
 
   /**
-   * Case class representing a principal's Hawk credentials
+   * Trait which represents a user entity with Hawk credentials. Modeled user entities
+   * must implement this trait in order for authentication to work
+   */
+  trait HawkUser {
+    val id: String
+    val key: String
+    val algorithm: MacAlgorithms.Value
+  }
+
+  /**
+   * Class representing a principal's Hawk credentials
    *
    * @param id Key identifier
    * @param key Key that will be used for calculating the MAC
    * @param algorithm Specific algorithm for calculating the MAC. Should be
    *                  one of [[com.ryanbrozo.spray.hawk.MacAlgorithms]]
    */
-  case class HawkCredentials(id: String, key: String, algorithm: MacAlgorithms.Value)
+  case class HawkCredentials(id: String, key: String, algorithm: MacAlgorithms.Value) extends HawkUser
 
   /**
    * List of parameters used for calculating MAC of a request
@@ -87,18 +97,12 @@ package object hawk {
   type HawkAuthParams = Map[HawkAuthKeys.Value, String]
 
   /**
-   * Represents a function that retrieves a users HawkCredentials
-   * given a key identifier passed in the Authorization header
-   */
-  type HawkCredentialsRetriever = String => Future[Option[HawkCredentials]]
-
-  /**
    * Represents a function that retrieves a user object of type U
    * given an authenticated Hawk key identifier
    *
-   * @tparam U Type of user to be retrieved
+   * @tparam U Type of user to be retrieved. Should implement HawkUser trait
    */
-  type UserRetriever[U] = Option[String] => Future[Option[U]]
+  type UserRetriever[U <: HawkUser] = String => Future[Option[U]]
 
   /**
    * Represents a function that retrieves the current time expressed in

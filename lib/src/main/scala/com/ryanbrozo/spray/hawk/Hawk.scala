@@ -56,7 +56,7 @@ import org.parboiled.common.Base64
  * @param payload Optional payload data if Hawk MAC calculation should use payload validation
  *
  */
-case class Hawk(credentials: HawkCredentials, options: HawkOptions, payload: Option[HawkPayload] = None) {
+case class Hawk(credentials: HawkUser, options: HawkOptions, payload: Option[HawkPayload] = None) {
 
   /**
    * Normalized string that will be used for calculating the MAC

@@ -42,24 +42,20 @@ class HawkAuthenticatorSpec
 
   implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(60, SECONDS))
 
+  case class User(name: String, id: String, key: String, algorithm: MacAlgorithms.Value) extends HawkUser
+
   def actorRefFactory = system // connect the DSL to the test ActorSystem
 
-  val hawkCreds = HawkCredentials("dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", MacAlgorithms.HmacSHA256)
+  val hawkUser = User("Bob", "dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", MacAlgorithms.HmacSHA256)
 
-  val hawkDontAuth = HawkAuthenticator[String]("testRealm",
-  { _ =>
-    Future.successful(Some(hawkCreds))
-  },
+  val hawkDontAuth = HawkAuthenticator[User]("testRealm",
   { _ =>
     Future.successful(None)
   })
 
-  val hawkDoAuth = HawkAuthenticator[String]("testrealm",
+  val hawkDoAuth = HawkAuthenticator[User]("testRealm",
   { _ =>
-    Future.successful(Some(hawkCreds))
-  },
-  { userOption =>
-    Future.successful(userOption map {_ => "Bob"})
+    Future.successful(Some(hawkUser))
   })
 
   val hawkCredentialsWithPort = GenericHttpCredentials("Hawk", Map(
@@ -68,13 +64,11 @@ class HawkAuthenticatorSpec
   val hawkCredentialsWithoutPort = GenericHttpCredentials("Hawk", Map(
     "id" -> "dh37fgj492je", "ts" -> "1353832234", "nonce" -> "j4h3g2", "ext" -> "some-app-ext-data", "mac" -> "fmzTiKheFFqAeWWoVIt6vIflByB9X8TeYQjCdvq9bf4="))
 
-  def echoComplete[T]: T ⇒ Route = { x ⇒ complete(x.toString) }
-
   "the 'authenticate(HawkAuthenticator)' directive" should {
     "reject requests without Authorization header with an AuthenticationRequiredRejection" in {
       Get() ~> {
-        authenticate(hawkDontAuth) {
-          echoComplete
+        authenticate(hawkDontAuth) { user =>
+          complete(user.name)
         }
       } ~> check {
         rejection === AuthenticationFailedRejection(CredentialsMissing, hawkDontAuth.getChallengeHeaders(null))
@@ -82,8 +76,8 @@ class HawkAuthenticatorSpec
     }
     "reject unauthenticated requests with Authorization header with an AuthorizationFailedRejection" in {
       Get("http://www.example.com:8000/abc") ~> Authorization(hawkCredentialsWithPort) ~> {
-        authenticate(hawkDontAuth) {
-          echoComplete
+        authenticate(hawkDontAuth) { user =>
+          complete(user.name)
         }
       } ~> check {
         rejection === AuthenticationFailedRejection(CredentialsRejected, hawkDontAuth.getChallengeHeaders(null))
@@ -91,8 +85,8 @@ class HawkAuthenticatorSpec
     }
     "reject incorrect mac in Authorization header with an AuthorizationFailedRejection" in {
       Get("http://www.example.com:8000/abc") ~> Authorization(hawkCredentialsWithPort) ~> {
-        authenticate(hawkDoAuth) {
-          echoComplete
+        authenticate(hawkDoAuth) { user =>
+          complete(user.name)
         }
       } ~> check {
         rejection === AuthenticationFailedRejection(CredentialsRejected, hawkDoAuth.getChallengeHeaders(null))
@@ -100,8 +94,8 @@ class HawkAuthenticatorSpec
     }
     "extract the object representing the user identity created by successful authentication" in {
       Get("http://example.com:8000/resource/1?b=1&a=2") ~> Authorization(hawkCredentialsWithPort) ~> {
-        authenticate(hawkDoAuth) {
-          echoComplete
+        authenticate(hawkDoAuth) { user =>
+          complete(user.name)
         }
       } ~> check {
         entityAs[String] === "Bob"
@@ -120,8 +114,8 @@ class HawkAuthenticatorSpec
     "properly handle X-Forwarded-Proto header in case it is set" in {
       Get("https://example.com/resource/1?b=1&a=2") ~> Authorization(hawkCredentialsWithoutPort) ~>
         RawHeader("X-Forwarded-Proto", "http") ~> {
-        authenticate(hawkDoAuth) {
-          echoComplete
+        authenticate(hawkDoAuth) { user =>
+          complete(user.name)
         }
       } ~> check {
         entityAs[String] === "Bob"

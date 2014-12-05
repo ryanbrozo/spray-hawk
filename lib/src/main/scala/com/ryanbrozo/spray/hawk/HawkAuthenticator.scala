@@ -25,7 +25,6 @@
 package com.ryanbrozo.spray.hawk
 
 import spray.http.HttpHeaders._
-import spray.http.Uri.Query
 import spray.http._
 import spray.routing.RequestContext
 import spray.routing.authentication.HttpAuthenticator
@@ -35,10 +34,10 @@ import scala.concurrent.{ExecutionContext, Future}
 /**
  * A HawkAuthenticator is a ContextAuthenticator that uses credentials passed to the server via the
  * HTTP `Authorization` header to authenticate the user and extract a user object.
+ *
  */
-case class HawkAuthenticator[U](realm: String,
-                                hawkCredentialsRetriever: HawkCredentialsRetriever,
-                                 userRetriever: UserRetriever[U])
+case class HawkAuthenticator[U <: HawkUser](realm: String,
+                                userRetriever: UserRetriever[U])
                                (implicit val executionContext: ExecutionContext)
   extends HttpAuthenticator[U]
   with Util {
@@ -65,7 +64,7 @@ case class HawkAuthenticator[U](realm: String,
     `WWW-Authenticate`(HttpChallenge(SCHEME, realm, params = Map.empty)) :: Nil
 
   override def authenticate(credentials: Option[HttpCredentials], ctx: RequestContext): Future[Option[U]] = {
-    import HawkAuthKeys._
+    import com.ryanbrozo.spray.hawk.HawkAuthKeys._
 
     val userFuture: Option[Future[Option[U]]] = for {
       creds@(_a: GenericHttpCredentials) <- credentials
@@ -73,13 +72,13 @@ case class HawkAuthenticator[U](realm: String,
       mac <- extractAuthKey(creds)(Mac)
       hawkOptions <- extractHawkOptions(ctx.request, extractAuthKey(creds))
     } yield {
-      hawkCredentialsRetriever(id) flatMap {
+      userRetriever(id) flatMap {
         case Some(hawkCreds) if Hawk(hawkCreds, hawkOptions).mac == mac =>
-          userRetriever(Some(hawkCreds.id))
+          Future.successful(Some(hawkCreds))
         case _ =>
-          userRetriever(None)
+          Future.successful(None)
       }
     }
-    userFuture.getOrElse(userRetriever(None))
+    userFuture.getOrElse(Future.successful(None))
   }
 }
