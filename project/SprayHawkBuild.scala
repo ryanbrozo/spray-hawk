@@ -24,6 +24,7 @@ object BuildSettings {
   val APP_VERSION = "0.1"
 
   lazy val commonSettings = Seq(
+    organization        := "com.ryanbrozo",
     scalaVersion        := SCALA_VERSION,
     version             := APP_VERSION,
     resolvers           ++= Seq(
