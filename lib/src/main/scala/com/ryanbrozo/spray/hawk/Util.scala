@@ -28,6 +28,9 @@ import spray.http.HttpHeaders.RawHeader
 import spray.http.HttpRequest
 import spray.http.Uri.Query
 
+import scala.compat.Platform
+import scala.util.Random
+
 /**
  * Util.scala
  *
@@ -93,5 +96,19 @@ trait Util {
       HawkOptionKeys.Ext -> ext
     ))
   }
+
+  /**
+   * Default timestamp generator
+   *
+   * @return Current time in Unix Epoch
+   */
+  def generateTimestamp: Long = Platform.currentTime
+
+  /**
+   * Default nonce generator
+   *
+   * @return Random string of length six
+   */
+  def generateNonce: Nonce = Random.alphanumeric.take(6).mkString
 
 }

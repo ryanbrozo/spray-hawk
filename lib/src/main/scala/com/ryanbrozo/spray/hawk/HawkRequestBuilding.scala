@@ -42,7 +42,7 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
    * @param ext App-specific data
    * @return
    */
-  def addHawkCredentials(credentials: HawkCredentials)(implicit ts: TimeStamp, nonce: Nonce, ext: ExtData): RequestTransformer = {request =>
+  def addHawkCredentials(ts: TimeStamp, nonce: Nonce, ext: ExtData)(credentials: HawkCredentials): RequestTransformer = {request =>
     // First, let's extract URI-related hawk options
     extractHawkOptions(request, { _ => None }).map ({ hawkOptions =>
       // Then add our user-specified parameters
@@ -68,4 +68,7 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
       request.mapHeaders(HttpHeaders.RawHeader("Authorization", s"Hawk $authHeader") :: _)
     }).getOrElse(request)
   }
+
+  def addHawkCredentials(ext: ExtData)(credentials: HawkCredentials): RequestTransformer = addHawkCredentials(generateTimestamp, generateNonce, ext)(credentials)
+
 }
