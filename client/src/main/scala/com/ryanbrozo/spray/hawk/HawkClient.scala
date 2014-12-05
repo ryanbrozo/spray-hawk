@@ -63,7 +63,7 @@ object HawkClient extends App with HawkRequestBuilding {
   /**
    * App-specific data
    */
-  implicit val ext: ExtData = "hawk-client"
+  val ext: ExtData = "hawk-client"
 
   val pipeline =
     addHawkCredentials(hawkCreds) ~>

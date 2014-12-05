@@ -45,7 +45,7 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
   def addHawkCredentials(credentials: HawkCredentials)(implicit ts: TimeStamp, nonce: Nonce, ext: ExtData): RequestTransformer = {request =>
     // First, let's extract URI-related hawk options
     extractHawkOptions(request, { _ => None }).map ({ hawkOptions =>
-      // Then, add, user-specified parameters
+      // Then add our user-specified parameters
       val updatedOptions = hawkOptions ++ Map(
         HawkOptionKeys.Ts -> ts.toString,
         HawkOptionKeys.Nonce -> nonce,
