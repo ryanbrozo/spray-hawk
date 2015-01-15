@@ -21,7 +21,7 @@ object BuildSettings {
   import BuildDependencies._
 
   val SCALA_VERSION = "2.11.4"
-  val APP_VERSION = "0.1"
+  val APP_VERSION = "0.2"
 
   lazy val commonSettings = Seq(
     organization        := "com.ryanbrozo",
