@@ -11,12 +11,12 @@ Current Version is **0.1**. Library is usable as of the current version but the 
 
 // Our User model. This needs to extend the HawkUser trait for our UserCredentialsRetriever
 // to work
-case class User(name: String, id: String, key: String, algorithm: MacAlgorithms.Value) extends HawkUser
+case class User(name: String, id: String, key: String, algorithm: HawkHashAlgorithms) extends HawkUser
 
 // Our user credentials retriever. Currently it returns 'Bob' along with his hawk credentials
 val userCredentialsRetriever: UserRetriever[User] = { id =>
     Future.successful {
-      if (id == "dh37fgj492je") Some(User("Bob", id, "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", MacAlgorithms.HmacSHA256))
+      if (id == "dh37fgj492je") Some(User("Bob", id, "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256))
       else None
     }
 }
@@ -37,7 +37,7 @@ startServer(interface = "localhost", port = 8080) {
 ```
 ####Client Usage Example:
 ``` scala
-val hawkCreds = HawkCredentials("dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", MacAlgorithms.HmacSHA256)
+val hawkCreds = HawkCredentials("dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256)
 
 val pipeline =
   addHawkCredentials("hawk-client")(hawkCreds) ~>
@@ -76,7 +76,6 @@ The client will connect to same URL, and you should get a `Welcome to spray, Bob
 
 ####Features to be implemented
 * [Replay Protection](https://github.com/ryanbrozo/spray-hawk/issues/1)
-* [Payload Validation](https://github.com/ryanbrozo/spray-hawk/issues/2)
 * [Response Payload Valdiation](https://github.com/ryanbrozo/spray-hawk/issues/3)
 * [Single URI Authorization](https://github.com/ryanbrozo/spray-hawk/issues/4)
 
