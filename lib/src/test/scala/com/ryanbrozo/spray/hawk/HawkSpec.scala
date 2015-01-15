@@ -34,7 +34,7 @@ import org.specs2.mutable._
  */
 class HawkSpec extends Specification {
 
-  val credentials = HawkCredentials("id", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", MacAlgorithms.HmacSHA256)
+  val credentials = HawkCredentials("id", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256)
 
   "Hawk header implementation" should {
     "return a valid normalized string" in {
@@ -68,6 +68,7 @@ class HawkSpec extends Specification {
         Uri -> "/resource/something",
         Host -> "example.com",
         Port -> "8080",
+        Hash -> "Yi9LfIIFRtBEPt74PVmbTF/xVAwPn7ub15ePICfgnuY=",
         Ts -> "1357747017",
         Nonce -> "k3k4j5",
         Ext -> "this is some app data"
@@ -96,6 +97,7 @@ class HawkSpec extends Specification {
         Uri -> "/resource/1?b=1&a=2",
         Host -> "example.com",
         Port -> "8000",
+        Hash -> "Yi9LfIIFRtBEPt74PVmbTF/xVAwPn7ub15ePICfgnuY=",
         Ts -> "1353832234",
         Nonce -> "j4h3g2",
         Ext -> "some-app-ext-data"

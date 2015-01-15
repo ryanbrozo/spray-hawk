@@ -35,7 +35,7 @@ import spray.http._
  */
 class HawkRequestBuildingSpec extends Specification with HawkRequestBuilding {
 
-  val hawkCreds = HawkCredentials("dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", MacAlgorithms.HmacSHA256)
+  val hawkCreds = HawkCredentials("dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256)
 
   "The HawkRequestBuilding trait" should {
     "be able to add the correct Hawk Authorization header" in {

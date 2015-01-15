@@ -53,12 +53,12 @@ case class HawkAuthenticator[U <: HawkUser](realm: String,
    */
   private def extractAuthKey(credentials: GenericHttpCredentials)(key: HawkAuthKeys.Value): Option[String] = credentials.params.get(key.toString)
 
-  /**
-   * Extracts the payload data for Hawk hash computation
-   * @param ctx Current [[spray.routing.RequestContext]]
-   * @return [[com.ryanbrozo.spray.hawk.HawkPayload]] data
-   */
-  private def extractHawkPayload(ctx: RequestContext): HawkPayload = ???
+//  /**
+//   * Extracts the payload data for Hawk hash computation
+//   * @param ctx Current [[spray.routing.RequestContext]]
+//   * @return [[com.ryanbrozo.spray.hawk.HawkPayload]] data
+//   */
+//  private def extractHawkPayload(ctx: RequestContext): HawkPayload = ???
 
   override def getChallengeHeaders(httpRequest: HttpRequest): List[HttpHeader] =
     `WWW-Authenticate`(HttpChallenge(SCHEME, realm, params = Map.empty)) :: Nil
@@ -73,8 +73,18 @@ case class HawkAuthenticator[U <: HawkUser](realm: String,
       hawkOptions <- extractHawkOptions(ctx.request, extractAuthKey(creds))
     } yield {
       userRetriever(id) flatMap {
-        case Some(hawkCreds) if Hawk(hawkCreds, hawkOptions).mac == mac =>
-          Future.successful(Some(hawkCreds))
+        case Some(hawkCreds) =>
+          // Get payload if it is available
+          val hawkPayload = extractHawkPayload(ctx.request) map {
+            case (payload, contentType) => HawkPayload(payload, contentType, hawkCreds.algorithm.hash)
+          }
+
+          val calculatedMac = Hawk(hawkCreds, hawkOptions, hawkPayload).mac
+          val normalized = Hawk(hawkCreds, hawkOptions, hawkPayload).normalized
+          if (calculatedMac == mac)
+            Future.successful(Some(hawkCreds))
+          else
+            Future.successful(None)
         case _ =>
           Future.successful(None)
       }

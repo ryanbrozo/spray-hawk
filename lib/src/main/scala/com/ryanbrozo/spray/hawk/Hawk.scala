@@ -65,10 +65,10 @@ case class Hawk(credentials: HawkUser, options: HawkOptions, payload: Option[Haw
     import com.ryanbrozo.spray.hawk.HawkOptionKeys._
 
     val appDlg = for (app <- options.get(App); dlg <- options.get(Dlg)) yield s"$app\n$dlg\n"
-    val hash = payload match {
-      case Some(p) => p.hash
-      case None => ""
-    }
+//    val hash = payload match {
+//      case Some(p) => p.hash
+//      case None => ""
+//    }
 
     s"""hawk.$HEADER_VERSION.header
       |${options.getOrElse(Ts, "")}
@@ -77,7 +77,7 @@ case class Hawk(credentials: HawkUser, options: HawkOptions, payload: Option[Haw
       |${options.getOrElse(Uri, "")}
       |${options.getOrElse(Host, "")}
       |${options.getOrElse(Port, "")}
-      |$hash
+      |${options.getOrElse(Hash, "")}
       |${options.getOrElse(Ext, "")}
       |${appDlg.getOrElse("")}""".stripMargin
   }
@@ -86,8 +86,8 @@ case class Hawk(credentials: HawkUser, options: HawkOptions, payload: Option[Haw
    * Calculated MAC
    */
   lazy val mac: String = {
-    val mac = Mac.getInstance(credentials.algorithm.toString)
-    mac.init(new SecretKeySpec(credentials.key.getBytes("UTF-8"), credentials.algorithm.toString))
+    val mac = Mac.getInstance(credentials.algorithm.hmac.toString)
+    mac.init(new SecretKeySpec(credentials.key.getBytes("UTF-8"), credentials.algorithm.hmac.toString))
     Base64.rfc2045().encodeToString(mac.doFinal(normalized.getBytes("UTF-8")), false)
   }
 }

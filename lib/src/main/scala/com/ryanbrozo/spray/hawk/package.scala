@@ -51,6 +51,15 @@ package object hawk {
     val SHA256 = Value("SHA-256")
   }
 
+  sealed trait HawkHashAlgorithms {
+    val hmac: MacAlgorithms.Value
+    val hash: HashAlgorithms.Value
+  }
+  case object HawkMD5 extends HawkHashAlgorithms { val hmac = MacAlgorithms.HmacMD5; val hash = HashAlgorithms.MD5}
+  case object HawkSHA1 extends HawkHashAlgorithms { val hmac = MacAlgorithms.HmacSHA1; val hash = HashAlgorithms.SHA1 }
+  case object HawkSHA256 extends HawkHashAlgorithms { val hmac = MacAlgorithms.HmacSHA256; val hash = HashAlgorithms.SHA256 }
+
+
   /**
    * Trait which represents a user entity with Hawk credentials. Modeled user entities
    * must implement this trait in order for authentication to work
@@ -58,7 +67,7 @@ package object hawk {
   trait HawkUser {
     val id: String
     val key: String
-    val algorithm: MacAlgorithms.Value
+    val algorithm: HawkHashAlgorithms
   }
 
   /**
@@ -66,16 +75,16 @@ package object hawk {
    *
    * @param id Key identifier
    * @param key Key that will be used for calculating the MAC
-   * @param algorithm Specific algorithm for calculating the MAC. Should be
-   *                  one of [[com.ryanbrozo.spray.hawk.MacAlgorithms]]
+   * @param algorithm Specific algorithm for calculating the MAC and payload hash. Should be
+   *                  one of [[com.ryanbrozo.spray.hawk.HawkHashAlgorithms]]
    */
-  case class HawkCredentials(id: String, key: String, algorithm: MacAlgorithms.Value) extends HawkUser
+  case class HawkCredentials(id: String, key: String, algorithm: HawkHashAlgorithms) extends HawkUser
 
   /**
    * List of parameters used for calculating MAC of a request
    */
   object HawkOptionKeys extends Enumeration {
-    val Method, Uri, Host, Port, Ts, Nonce, Ext, App, Dlg = Value
+    val Method, Uri, Host, Port, Ts, Nonce, Hash, Ext, App, Dlg = Value
   }
 
   /**

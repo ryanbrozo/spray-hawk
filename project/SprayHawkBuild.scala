@@ -40,7 +40,7 @@ object BuildSettings {
       sprayTestKit,
       specs2
     ),
-    scalacOptions in Test ++= Seq("-Yrangepos")
+    scalacOptions in Test ++= Seq("-Yrangepos", "-deprecation")
   )
 
   lazy val serverSettings = Seq(

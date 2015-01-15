@@ -24,6 +24,7 @@
 
 package com.ryanbrozo.spray.hawk
 
+import spray.http.HttpEntity.{Empty, NonEmpty}
 import spray.http.HttpHeaders.RawHeader
 import spray.http.HttpRequest
 import spray.http.Uri.Query
@@ -60,6 +61,7 @@ trait Util {
     val ts = extractor(HawkAuthKeys.Ts).getOrElse("")
     val ext = extractor(HawkAuthKeys.Ext).getOrElse("")
     val nonce = extractor(HawkAuthKeys.Nonce).getOrElse("")
+    val hash = extractor(HawkAuthKeys.Hash).getOrElse("")
     val method = req.method.toString()
     val rawUri = req.uri
 
@@ -93,8 +95,20 @@ trait Util {
       HawkOptionKeys.Port -> port.toString,
       HawkOptionKeys.Ts -> ts,
       HawkOptionKeys.Nonce -> nonce,
+      HawkOptionKeys.Hash -> hash,
       HawkOptionKeys.Ext -> ext
     ))
+  }
+
+  def extractHawkPayload(req: HttpRequest): Option[(Array[Byte], String)] = {
+    req.entity match {
+      case e: NonEmpty =>
+        val data = e.data.toByteArray
+        val contentType = e.contentType.mediaType.toString()
+        println(contentType)
+        Some((data, contentType))
+      case Empty => None
+    }
   }
 
   /**
