@@ -73,9 +73,8 @@ class HawkSpec extends Specification {
         Nonce -> "k3k4j5",
         Ext -> "this is some app data"
       )
-      val payload = HawkPayload("Thank you for flying Hawk".getBytes("UTF-8"), "text/plain", HashAlgorithms.SHA256)
 
-      Hawk(credentials, options, Some(payload)).normalized must beEqualTo("hawk.1.header\n1357747017\nk3k4j5\nGET\n/resource/something\nexample.com\n8080\nYi9LfIIFRtBEPt74PVmbTF/xVAwPn7ub15ePICfgnuY=\nthis is some app data\n")
+      Hawk(credentials, options).normalized must beEqualTo("hawk.1.header\n1357747017\nk3k4j5\nGET\n/resource/something\nexample.com\n8080\nYi9LfIIFRtBEPt74PVmbTF/xVAwPn7ub15ePICfgnuY=\nthis is some app data\n")
     }
 
     "produce the correct MAC in given example from Hawk readme" in {
@@ -102,8 +101,7 @@ class HawkSpec extends Specification {
         Nonce -> "j4h3g2",
         Ext -> "some-app-ext-data"
       )
-      val payload = HawkPayload("Thank you for flying Hawk".getBytes("UTF-8"), "text/plain", HashAlgorithms.SHA256)
-      Hawk(credentials, options, Some(payload)).mac must beEqualTo("aSe1DERmZuRl3pI36/9BdZmnErTw3sNzOOAUlfeKjVw=")
+      Hawk(credentials, options).mac must beEqualTo("aSe1DERmZuRl3pI36/9BdZmnErTw3sNzOOAUlfeKjVw=")
     }
   }
 }

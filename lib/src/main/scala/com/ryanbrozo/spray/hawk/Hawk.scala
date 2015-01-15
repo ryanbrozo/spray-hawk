@@ -53,10 +53,9 @@ import org.parboiled.common.Base64
  *
  *                Hash - Hash of payload as described [[https://github.com/hueniverse/hawk#payload-validation here]]
  *
- * @param payload Optional payload data if Hawk MAC calculation should use payload validation
  *
  */
-case class Hawk(credentials: HawkUser, options: HawkOptions, payload: Option[HawkPayload] = None) {
+case class Hawk(credentials: HawkUser, options: HawkOptions) {
 
   /**
    * Normalized string that will be used for calculating the MAC
@@ -65,10 +64,6 @@ case class Hawk(credentials: HawkUser, options: HawkOptions, payload: Option[Haw
     import com.ryanbrozo.spray.hawk.HawkOptionKeys._
 
     val appDlg = for (app <- options.get(App); dlg <- options.get(Dlg)) yield s"$app\n$dlg\n"
-//    val hash = payload match {
-//      case Some(p) => p.hash
-//      case None => ""
-//    }
 
     s"""hawk.$HEADER_VERSION.header
       |${options.getOrElse(Ts, "")}

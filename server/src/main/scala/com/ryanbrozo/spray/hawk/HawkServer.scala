@@ -17,14 +17,14 @@ object HawkServer extends App with SimpleRoutingApp {
    * Our User model. This needs to extend the HawkUser trait for our UserCredentialsRetriever
    * to work
    */
-  case class User(name: String, id: String, key: String, algorithm: MacAlgorithms.Value) extends HawkUser
+  case class User(name: String, id: String, key: String, algorithm: HawkHashAlgorithms) extends HawkUser
 
   /**
    * Our user credentials retriever. Currently it returns 'Bob' along with his hawk credentials
    */
   val userCredentialsRetriever: UserRetriever[User] = { id =>
     Future.successful {
-      if (id == "dh37fgj492je") Some(User("Bob", id, "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", MacAlgorithms.HmacSHA256))
+      if (id == "dh37fgj492je") Some(User("Bob", id, "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256))
       else None
     }
   }

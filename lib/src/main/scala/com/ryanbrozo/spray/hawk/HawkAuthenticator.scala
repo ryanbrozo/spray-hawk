@@ -74,15 +74,23 @@ case class HawkAuthenticator[U <: HawkUser](realm: String,
     } yield {
       userRetriever(id) flatMap {
         case Some(hawkCreds) =>
-          // Get payload if it is available
-          val hawkPayload = extractHawkPayload(ctx.request) map {
-            case (payload, contentType) => HawkPayload(payload, contentType, hawkCreds.algorithm.hash)
+          val calculatedMac = Hawk(hawkCreds, hawkOptions).mac
+          if (calculatedMac == mac) {
+            val result = hawkOptions.get(HawkOptionKeys.Hash).fold{
+              // 'hash' is not supplied? then no payload validation is needed.
+              // Return the obtained credentials
+              Option(hawkCreds)
+            }{ hash =>
+              // According to Hawk specs, payload validation should should only
+              // happen if MAC is validated.
+              for {
+                (payload, contentType) <- extractHawkPayload(ctx.request)
+                hawkPayload <- Option(HawkPayload(payload, contentType, hawkCreds.algorithm.hash))
+                if hawkPayload.hash == hash
+              } yield hawkCreds
+            }
+            Future.successful(result)
           }
-
-          val calculatedMac = Hawk(hawkCreds, hawkOptions, hawkPayload).mac
-          val normalized = Hawk(hawkCreds, hawkOptions, hawkPayload).normalized
-          if (calculatedMac == mac)
-            Future.successful(Some(hawkCreds))
           else
             Future.successful(None)
         case _ =>

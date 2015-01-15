@@ -61,7 +61,7 @@ trait Util {
     val ts = extractor(HawkAuthKeys.Ts).getOrElse("")
     val ext = extractor(HawkAuthKeys.Ext).getOrElse("")
     val nonce = extractor(HawkAuthKeys.Nonce).getOrElse("")
-    val hash = extractor(HawkAuthKeys.Hash).getOrElse("")
+    val hashOption = extractor(HawkAuthKeys.Hash)
     val method = req.method.toString()
     val rawUri = req.uri
 
@@ -88,18 +88,28 @@ trait Util {
           case _       ⇒ 0
         }
     }
-    Some(Map(
+    val map = Map(
       HawkOptionKeys.Method -> method,
       HawkOptionKeys.Uri -> uri,
       HawkOptionKeys.Host -> host,
       HawkOptionKeys.Port -> port.toString,
       HawkOptionKeys.Ts -> ts,
       HawkOptionKeys.Nonce -> nonce,
-      HawkOptionKeys.Hash -> hash,
       HawkOptionKeys.Ext -> ext
-    ))
+    )
+
+    // Include 'hash' parameter if it is provided
+    hashOption.fold(Some(map)){ hash =>
+      Some(map + (HawkOptionKeys.Hash -> hash))
+    }
   }
 
+  /**
+   * Extracts Hawk-related payload information from a request
+   *
+   * @param req [[HttpRequest]] instance, usually coming from the current Spray [[spray.routing.RequestContext]]
+   * @return Payload data represented as byte array and it's corresponding Content-Type, wrapped in an [[Option]]
+   */
   def extractHawkPayload(req: HttpRequest): Option[(Array[Byte], String)] = {
     req.entity match {
       case e: NonEmpty =>

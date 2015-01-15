@@ -160,6 +160,17 @@ class HawkAuthenticatorSpec
         responseAs[String] === "Bob"
       }
     }
+    "reject unauthenticated requests having a validated MAC but with wrong payload hash" in {
+      Post("http://example.com:8000/resource/1?b=1&a=2", "Thank you for flying Hawkz") ~>
+        `Content-Type`(ContentType(spray.http.MediaTypes.`text/plain`)) ~>
+        Authorization(hawkCredentials_POST_withPortWithPayload) ~> {
+        authenticate(hawkDoAuth) { user =>
+          complete(user.name)
+        }
+      } ~> check {
+        rejection === AuthenticationFailedRejection(CredentialsRejected, hawkDontAuth.getChallengeHeaders(null))
+      }
+    }
     "extract the object representing the user identity created by successful authentication " +
       "in a POST request (with payload validation)" in {
       Post("http://example.com:8000/resource/1?b=1&a=2", "Thank you for flying Hawk") ~>
