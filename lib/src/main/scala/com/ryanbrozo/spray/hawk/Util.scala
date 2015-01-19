@@ -115,7 +115,6 @@ trait Util {
       case e: NonEmpty =>
         val data = e.data.toByteArray
         val contentType = e.contentType.mediaType.toString()
-        println(contentType)
         Some((data, contentType))
       case Empty => None
     }

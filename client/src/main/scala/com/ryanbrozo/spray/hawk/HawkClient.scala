@@ -31,7 +31,7 @@ import spray.can.Http
 import spray.client.pipelining._
 
 import scala.compat.Platform
-import scala.concurrent.Await
+import scala.concurrent.{Future, Await}
 import scala.concurrent.duration._
 import scala.util._
 
@@ -50,18 +50,28 @@ object HawkClient extends App with HawkRequestBuilding {
 
   val hawkCreds = HawkCredentials("dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256)
 
-  val pipeline =
-    addHawkCredentials("hawk-client")(hawkCreds) ~>
+  val getPipeline =
+    addHawkCredentials("hawk-client")(hawkCreds, withPayloadValidation = true) ~>
     sendReceive ~>
     unmarshal[String]
 
-  val responseFuture = pipeline {
+  val getResponseFuture = getPipeline {
     Get("http://localhost:8080/secured")
   }
 
-  responseFuture onComplete {
-    case Success(result) =>
-      println(result)
+  val postResponseFuture = getPipeline {
+    Post("http://localhost:8080/secured", "Thank you for flying hawk")
+  }
+
+  val resultFuture: Future[(String, String)] = for {
+    get <- getResponseFuture
+    post <- postResponseFuture
+  } yield (get, post)
+
+  resultFuture onComplete {
+    case Success((getResult, postResult)) =>
+      println(getResult)
+      println(postResult)
       shutdown()
     case util.Failure(error) =>
       println(s"Cannot retrieve URL: $error")

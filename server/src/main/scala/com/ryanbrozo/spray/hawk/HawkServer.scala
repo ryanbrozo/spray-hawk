@@ -38,6 +38,13 @@ object HawkServer extends App with SimpleRoutingApp {
           complete {
             s"Welcome to spray, ${user.name}!"
           }
+        } ~
+        post {
+          entity(as[String]) { body =>
+            complete {
+              s"Welcome to spray, ${user.name}! Your post body was: $body"
+            }
+          }
         }
       }
     }
