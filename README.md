@@ -24,18 +24,27 @@ val userCredentialsRetriever: UserRetriever[User] = { id =>
 val hawkAuthenticator = HawkAuthenticator("hawk-test", userCredentialsRetriever)
 
 startServer(interface = "localhost", port = 8080) {
-    path("secured") {
-      authenticate(hawkAuthenticator) { user =>
-        get {
+  path("secured") {
+    authenticate(hawkAuthenticator) { user =>
+      get {
+        complete {
+          s"Welcome to spray, ${user.name}!"
+        }
+      } ~
+      post {
+        entity(as[String]) { body =>
           complete {
-            s"Welcome to spray, ${user.name}!"
+            s"Welcome to spray, ${user.name}! Your post body was: $body"
           }
         }
       }
     }
+  }
 }
 ```
 ####Client Usage Example:
+
+##### GET Request
 ``` scala
 val hawkCreds = HawkCredentials("dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256)
 
@@ -46,6 +55,29 @@ val pipeline =
 
 val responseFuture = pipeline {
   Get("http://localhost:8080/secured")
+}
+
+responseFuture onComplete {
+  case Success(result) =>
+    println(result)
+    shutdown()
+  case util.Failure(error) =>
+    println(s"Cannot retrieve URL: $error")
+    shutdown()
+}
+```
+
+##### POST Request with payload validation
+``` scala
+val hawkCreds = HawkCredentials("dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256)
+
+val pipeline =
+  addHawkCredentials("hawk-client")(hawkCreds, withPayloadValidation = true) ~>
+  sendReceive ~>
+  unmarshal[String]
+
+val responseFuture = pipeline {
+  Post("http://localhost:8080/secured", "Thank you for flying Hawk")
 }
 
 responseFuture onComplete {
