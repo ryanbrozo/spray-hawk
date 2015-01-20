@@ -53,7 +53,7 @@ trait Util {
    * @param extractor Extractor function that extracts hawk parameters from the Authorization header
    * @return Extracted options
    */
-  def extractHawkOptions(req: HttpRequest, extractor: ParameterExtractor): Option[HawkOptions] = {
+  def extractHawkOptions(req: HttpRequest, extractor: ParameterExtractor): HawkOptions = {
     val xForwardedProtoHeader = req.headers.find {
       case h: RawHeader if h.lowercaseName == "x-forwarded-proto" ⇒ true
       case _ ⇒ false
@@ -88,20 +88,16 @@ trait Util {
           case _       ⇒ 0
         }
     }
-    val map = Map(
-      HawkOptionKeys.Method -> method,
-      HawkOptionKeys.Uri -> uri,
-      HawkOptionKeys.Host -> host,
-      HawkOptionKeys.Port -> port.toString,
-      HawkOptionKeys.Ts -> ts,
-      HawkOptionKeys.Nonce -> nonce,
-      HawkOptionKeys.Ext -> ext
-    )
-
-    // Include 'hash' parameter if it is provided
-    hashOption.fold(Some(map)){ hash =>
-      Some(map + (HawkOptionKeys.Hash -> hash))
-    }
+    Map(
+      HawkOptionKeys.Method -> Option(method),
+      HawkOptionKeys.Uri -> Option(uri),
+      HawkOptionKeys.Host -> Option(host),
+      HawkOptionKeys.Port -> Option(port.toString),
+      HawkOptionKeys.Ts -> Option(ts),
+      HawkOptionKeys.Nonce -> Option(nonce),
+      HawkOptionKeys.Ext -> Option(ext),
+      HawkOptionKeys.Hash -> hashOption
+    ).collect { case (k, Some(v)) => k -> v }
   }
 
   /**

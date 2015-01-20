@@ -70,7 +70,7 @@ case class HawkAuthenticator[U <: HawkUser](realm: String,
       creds@(_a: GenericHttpCredentials) <- credentials
       id <- extractAuthKey(creds)(Id)
       mac <- extractAuthKey(creds)(Mac)
-      hawkOptions <- extractHawkOptions(ctx.request, extractAuthKey(creds))
+      hawkOptions <- Option(extractHawkOptions(ctx.request, extractAuthKey(creds)))
     } yield {
       userRetriever(id) flatMap {
         case Some(hawkCreds) =>

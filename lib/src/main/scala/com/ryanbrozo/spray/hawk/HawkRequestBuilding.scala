@@ -47,49 +47,40 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
                          withPayloadValidation: Boolean): RequestTransformer = { request =>
 
     // Do we need to compute 'hash' param?
-    val hawkPayload = if (withPayloadValidation) {
+    val payloadHashOption = if (withPayloadValidation) {
       extractHawkPayload(request) map {
-        case (payload, contentType) => HawkPayload(payload, contentType, credentials.algorithm.hash)
+        case (payload, contentType) => HawkPayload(payload, contentType, credentials.algorithm.hash).hash
       }
     } else None
 
     // First, let's extract URI-related hawk options
-    extractHawkOptions(request, { _ => None }).map ({ hawkOptions =>
-      // Then add our user-specified parameters
-      val updatedOptions = hawkOptions ++ Map(
-        HawkOptionKeys.Ts -> ts.toString,
-        HawkOptionKeys.Nonce -> nonce,
-        HawkOptionKeys.Ext -> ext
-      )
+    val hawkOptions = extractHawkOptions(request, { _ => None })
 
-      // Include 'hash' parameter if it is provided
-      val updatedOptions2 = hawkPayload.fold(updatedOptions){ payload =>
-        updatedOptions + (HawkOptionKeys.Hash -> payload.hash)
-      }
+    // Then add our user-specified parameters
+    val updatedOptions = hawkOptions ++ Map(
+      HawkOptionKeys.Ts -> Option(ts.toString),
+      HawkOptionKeys.Nonce -> Option(nonce),
+      HawkOptionKeys.Ext -> Option(ext),
+      HawkOptionKeys.Hash -> payloadHashOption
+    ).collect { case (k, Some(v)) => k -> v }
 
-      // Compute our MAC
-      val mac = Hawk(credentials, updatedOptions2).mac
+    // Compute our MAC
+    val mac = Hawk(credentials, updatedOptions).mac
 
-      // Then create our Hawk Authorization header
-      val authHeader = Map(
-        HawkAuthKeys.Id -> credentials.id,
-        HawkAuthKeys.Ts -> ts,
-        HawkAuthKeys.Nonce -> nonce,
-        HawkAuthKeys.Ext -> ext,
-        HawkAuthKeys.Mac -> mac
-      )
+    // Then create our Hawk Authorization header
+    val authHeader = Map(
+      HawkAuthKeys.Id -> Option(credentials.id),
+      HawkAuthKeys.Ts -> Option(ts),
+      HawkAuthKeys.Nonce -> Option(nonce),
+      HawkAuthKeys.Ext -> Option(ext),
+      HawkAuthKeys.Mac -> Option(mac),
+      HawkAuthKeys.Hash -> payloadHashOption
+    )
+      .collect({ case (k, Some(v)) => k.toString + "=" + "\"" + v + "\"" })
+      .mkString(",")
 
-      val authHeader2 = hawkPayload.fold(authHeader){ payload =>
-        authHeader + (HawkAuthKeys.Hash -> payload.hash)
-      }
-
-      val authHeader3 = authHeader2.map({
-        case (k, v) => k.toString + "=" + "\"" + v + "\""}
-      ).mkString(",")
-
-      // Add it to the current request
-      request.mapHeaders(HttpHeaders.RawHeader("Authorization", s"Hawk $authHeader3") :: _)
-    }).getOrElse(request)
+    // Add it to the current request
+    request.mapHeaders(HttpHeaders.RawHeader("Authorization", s"Hawk $authHeader") :: _)
   }
 
   def addHawkCredentials(ext: ExtData)(credentials: HawkCredentials, withPayloadValidation: Boolean = false): RequestTransformer =
