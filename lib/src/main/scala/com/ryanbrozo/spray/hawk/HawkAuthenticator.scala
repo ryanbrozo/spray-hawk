@@ -51,20 +51,14 @@ case class HawkAuthenticator[U <: HawkUser](realm: String,
    * @param key Key of value to obtain
    * @return Extracted value [[scala.Option]]
    */
-  private def extractAuthKey(credentials: GenericHttpCredentials)(key: HawkAuthKeys.Value): Option[String] = credentials.params.get(key.toString)
-
-//  /**
-//   * Extracts the payload data for Hawk hash computation
-//   * @param ctx Current [[spray.routing.RequestContext]]
-//   * @return [[com.ryanbrozo.spray.hawk.HawkPayload]] data
-//   */
-//  private def extractHawkPayload(ctx: RequestContext): HawkPayload = ???
+  private def extractAuthKey(credentials: GenericHttpCredentials)(key: HawkAuthKeys.Value): Option[String] =
+    credentials.params.get(key.toString)
 
   override def getChallengeHeaders(httpRequest: HttpRequest): List[HttpHeader] =
     `WWW-Authenticate`(HttpChallenge(SCHEME, realm, params = Map.empty)) :: Nil
 
   override def authenticate(credentials: Option[HttpCredentials], ctx: RequestContext): Future[Option[U]] = {
-    import com.ryanbrozo.spray.hawk.HawkAuthKeys._
+    import HawkAuthKeys._
 
     val userFuture: Option[Future[Option[U]]] = for {
       creds@(_a: GenericHttpCredentials) <- credentials
@@ -84,7 +78,7 @@ case class HawkAuthenticator[U <: HawkUser](realm: String,
               // According to Hawk specs, payload validation should should only
               // happen if MAC is validated.
               for {
-                (payload, contentType) <- extractHawkPayload(ctx.request)
+                (payload, contentType) <- extractPayload(ctx.request)
                 hawkPayload <- Option(HawkPayload(payload, contentType, hawkCreds.algorithm.hashAlgo))
                 if hawkPayload.hash == hash
               } yield hawkCreds

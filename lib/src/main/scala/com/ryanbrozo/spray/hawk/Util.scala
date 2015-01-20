@@ -101,12 +101,12 @@ trait Util {
   }
 
   /**
-   * Extracts Hawk-related payload information from a request
+   * Extracts payload information that is essential for Hawk payload validation from a request
    *
    * @param req [[HttpRequest]] instance, usually coming from the current Spray [[spray.routing.RequestContext]]
-   * @return Payload data represented as byte array and it's corresponding Content-Type, wrapped in an [[Option]]
+   * @return Payload data represented as byte array and it's corresponding Content-Type, wrapped as an [[Option]]
    */
-  def extractHawkPayload(req: HttpRequest): Option[(Array[Byte], String)] = {
+  def extractPayload(req: HttpRequest): Option[(Array[Byte], String)] = {
     req.entity match {
       case e: NonEmpty =>
         val data = e.data.toByteArray
