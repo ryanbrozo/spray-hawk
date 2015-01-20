@@ -81,8 +81,8 @@ case class Hawk(credentials: HawkUser, options: HawkOptions) {
    * Calculated MAC
    */
   lazy val mac: String = {
-    val mac = Mac.getInstance(credentials.algorithm.hmac.toString)
-    mac.init(new SecretKeySpec(credentials.key.getBytes("UTF-8"), credentials.algorithm.hmac.toString))
+    val mac = Mac.getInstance(credentials.algorithm.hmacAlgo.toString)
+    mac.init(new SecretKeySpec(credentials.key.getBytes("UTF-8"), credentials.algorithm.hmacAlgo.toString))
     Base64.rfc2045().encodeToString(mac.doFinal(normalized.getBytes("UTF-8")), false)
   }
 }

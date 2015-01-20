@@ -38,7 +38,7 @@ package object hawk {
    * to javax.crypto.Mac.getInstance()
    */
   object MacAlgorithms extends Enumeration {
-    val HmacMD5, HmacSHA1, HmacSHA256 = Value
+    val HmacSHA1, HmacSHA256 = Value
   }
 
   /**
@@ -46,18 +46,16 @@ package object hawk {
    * to java.security.MessageDigest.getInstance()
    */
   object HashAlgorithms extends Enumeration {
-    val MD5 = Value("MD5")
     val SHA1 = Value("SHA-1")
     val SHA256 = Value("SHA-256")
   }
 
   sealed trait HawkHashAlgorithms {
-    val hmac: MacAlgorithms.Value
-    val hash: HashAlgorithms.Value
+    val hmacAlgo: MacAlgorithms.Value
+    val hashAlgo: HashAlgorithms.Value
   }
-  case object HawkMD5 extends HawkHashAlgorithms { val hmac = MacAlgorithms.HmacMD5; val hash = HashAlgorithms.MD5}
-  case object HawkSHA1 extends HawkHashAlgorithms { val hmac = MacAlgorithms.HmacSHA1; val hash = HashAlgorithms.SHA1 }
-  case object HawkSHA256 extends HawkHashAlgorithms { val hmac = MacAlgorithms.HmacSHA256; val hash = HashAlgorithms.SHA256 }
+  case object HawkSHA1 extends HawkHashAlgorithms { val hmacAlgo = MacAlgorithms.HmacSHA1; val hashAlgo = HashAlgorithms.SHA1 }
+  case object HawkSHA256 extends HawkHashAlgorithms { val hmacAlgo = MacAlgorithms.HmacSHA256; val hashAlgo = HashAlgorithms.SHA256 }
 
 
   /**

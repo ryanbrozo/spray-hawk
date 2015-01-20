@@ -49,7 +49,7 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
     // Do we need to compute 'hash' param?
     val payloadHashOption = if (withPayloadValidation) {
       extractHawkPayload(request) map {
-        case (payload, contentType) => HawkPayload(payload, contentType, credentials.algorithm.hash).hash
+        case (payload, contentType) => HawkPayload(payload, contentType, credentials.algorithm.hashAlgo).hash
       }
     } else None
 

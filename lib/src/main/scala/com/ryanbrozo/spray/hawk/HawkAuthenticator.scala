@@ -85,7 +85,7 @@ case class HawkAuthenticator[U <: HawkUser](realm: String,
               // happen if MAC is validated.
               for {
                 (payload, contentType) <- extractHawkPayload(ctx.request)
-                hawkPayload <- Option(HawkPayload(payload, contentType, hawkCreds.algorithm.hash))
+                hawkPayload <- Option(HawkPayload(payload, contentType, hawkCreds.algorithm.hashAlgo))
                 if hawkPayload.hash == hash
               } yield hawkCreds
             }
