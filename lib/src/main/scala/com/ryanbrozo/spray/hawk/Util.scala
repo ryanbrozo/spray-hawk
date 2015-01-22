@@ -24,6 +24,7 @@
 
 package com.ryanbrozo.spray.hawk
 
+import com.typesafe.config.ConfigFactory
 import spray.http.HttpEntity.{Empty, NonEmpty}
 import spray.http.HttpHeaders.RawHeader
 import spray.http.HttpRequest
@@ -37,8 +38,23 @@ import scala.util.Random
  *
  * Created by rye on 12/4/14 2:17 PM.
  */
-trait Util {
 
+private object Util {
+  
+  private val MINIMUM_NONCE_LENGTH = 6
+
+  private val _conf = ConfigFactory.load()
+  
+  val nonceLength = {
+    val v = _conf.getInt("spray.hawk.nonceLength")
+    if (v < MINIMUM_NONCE_LENGTH) MINIMUM_NONCE_LENGTH else v
+  }
+  
+}
+
+trait Util {
+  import Util._
+  
   /**
    * Represents a function that extracts a parameter
    * from a map
@@ -126,8 +142,8 @@ trait Util {
   /**
    * Default nonce generator
    *
-   * @return Random string of length six
+   * @return Random string of length defined in the configuration file.
    */
-  def generateNonce: Nonce = Random.alphanumeric.take(6).mkString
+  def generateNonce: Nonce = Random.alphanumeric.take(nonceLength).mkString
 
 }

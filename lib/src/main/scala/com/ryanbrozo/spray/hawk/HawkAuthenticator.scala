@@ -24,12 +24,21 @@
 
 package com.ryanbrozo.spray.hawk
 
+import com.typesafe.config.ConfigFactory
 import spray.http.HttpHeaders._
 import spray.http._
 import spray.routing.RequestContext
 import spray.routing.authentication.HttpAuthenticator
 
 import scala.concurrent.{ExecutionContext, Future}
+
+private object HawkAuthenticator {
+  
+  private val _conf = ConfigFactory.load()
+  
+  val payloadValidationEnabled = _conf.getBoolean("spray.hawk.payloadValidation")
+  
+}
 
 /**
  * A HawkAuthenticator is a ContextAuthenticator that uses credentials passed to the server via the
@@ -41,6 +50,8 @@ case class HawkAuthenticator[U <: HawkUser](realm: String,
                                (implicit val executionContext: ExecutionContext)
   extends HttpAuthenticator[U]
   with Util {
+  
+  import HawkAuthenticator._
 
   val SCHEME = "Hawk"
 
@@ -75,13 +86,16 @@ case class HawkAuthenticator[U <: HawkUser](realm: String,
               // Return the obtained credentials
               Option(hawkCreds)
             }{ hash =>
-              // According to Hawk specs, payload validation should should only
-              // happen if MAC is validated.
-              for {
-                (payload, contentType) <- extractPayload(ctx.request)
-                hawkPayload <- Option(HawkPayload(payload, contentType, hawkCreds.algorithm.hashAlgo))
-                if hawkPayload.hash == hash
-              } yield hawkCreds
+              if (payloadValidationEnabled) {
+                // According to Hawk specs, payload validation should should only
+                // happen if MAC is validated.
+                for {
+                  (payload, contentType) <- extractPayload(ctx.request)
+                  hawkPayload <- Option(HawkPayload(payload, contentType, hawkCreds.algorithm.hashAlgo))
+                  if hawkPayload.hash == hash
+                } yield hawkCreds
+              }
+              else Option(hawkCreds)
             }
             Future.successful(result)
           }
