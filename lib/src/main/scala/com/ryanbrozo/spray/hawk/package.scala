@@ -117,12 +117,6 @@ package object hawk {
   type TimeStamp = Long
 
   /**
-   * Represents a function that retrieves the current time expressed in
-   * Unix time
-   */
-  type TimeStampProvider = () => TimeStamp
-
-  /**
    * Cryptographic Nonce. See this Wikipedia [[http://en.wikipedia.org/wiki/Cryptographic_nonce article]]
    */
   type Nonce = String
@@ -131,6 +125,19 @@ package object hawk {
    * App-specific data
    */
   type ExtData = String
+
+  /**
+   * Represents a function that retrieves the current time expressed in
+   * Unix time
+   */
+  type TimeStampProvider = () => TimeStamp
+
+  /**
+   * Represents a function that generates a random cryptographic nonce
+   */
+  type NonceProvider = () => Nonce
+
+
 
 
 }

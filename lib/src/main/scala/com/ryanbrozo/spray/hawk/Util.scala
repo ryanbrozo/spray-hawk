@@ -144,6 +144,6 @@ trait Util {
    *
    * @return Random string of length defined in the configuration file.
    */
-  def generateNonce: Nonce = Random.alphanumeric.take(nonceLength).mkString
+  def generateNonce(): Nonce = Random.alphanumeric.take(nonceLength).mkString
 
 }

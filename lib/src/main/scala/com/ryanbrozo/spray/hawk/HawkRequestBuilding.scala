@@ -23,7 +23,9 @@
  */
 
 package com.ryanbrozo.spray.hawk
-import spray.http.HttpHeaders
+
+import spray.http.HttpHeaders.RawHeader
+import spray.http.{HttpHeaders, HttpRequest}
 import spray.httpx.RequestBuilding
 
 /**
@@ -38,14 +40,12 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
    *
    * @param credentials Hawk credentials
    * @param timestampProvider Function to generate current timestamp
-   * @param nonce Random cryptographic nonce. See this Wikipedia [[http://en.wikipedia.org/wiki/Cryptographic_nonce]] article
+   * @param nonceProvider Function to generate random cryptographic nonce
    * @param ext App-specific data
    * @return
    */
-  def addHawkCredentials(timestampProvider: TimeStampProvider, nonce: Nonce, ext: ExtData)
-                        (credentials: HawkCredentials,
-                         withPayloadValidation: Boolean): RequestTransformer = { request =>
-
+  protected def generateRawHeader(request: HttpRequest, timestampProvider: TimeStampProvider, nonceProvider: NonceProvider, ext: ExtData,
+                                  credentials: HawkCredentials, withPayloadValidation: Boolean): RawHeader = {
     // Do we need to compute 'hash' param?
     val payloadHashOption = if (withPayloadValidation) {
       extractPayload(request) map {
@@ -58,6 +58,7 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
 
     // Then add our user-specified parameters
     val ts = timestampProvider().toString
+    val nonce = nonceProvider()
     val updatedOptions = hawkOptions ++ Map(
       HawkOptionKeys.Ts -> Option(ts),
       HawkOptionKeys.Nonce -> Option(nonce),
@@ -80,8 +81,13 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
       .collect({ case (k, Some(v)) => k.toString + "=" + "\"" + v + "\"" })
       .mkString(",")
 
-    // Add it to the current request
-    request.mapHeaders(HttpHeaders.RawHeader("Authorization", s"Hawk $authHeader") :: _)
+    HttpHeaders.RawHeader("Authorization", s"Hawk $authHeader")
+  }
+
+  def addHawkCredentials(timestampProvider: TimeStampProvider, nonceProvider: NonceProvider, ext: ExtData)
+                        (credentials: HawkCredentials,
+                         withPayloadValidation: Boolean): RequestTransformer = { request =>
+    request.mapHeaders(generateRawHeader(request,timestampProvider, nonceProvider, ext, credentials, withPayloadValidation) :: _)
   }
 
   def addHawkCredentials(ext: ExtData)(credentials: HawkCredentials, withPayloadValidation: Boolean = false): RequestTransformer =

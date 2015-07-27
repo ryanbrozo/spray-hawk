@@ -30,9 +30,8 @@ import akka.pattern.ask
 import spray.can.Http
 import spray.client.pipelining._
 
-import scala.compat.Platform
-import scala.concurrent.{Future, Await}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 import scala.util._
 
 /**
