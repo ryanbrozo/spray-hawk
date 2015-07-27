@@ -137,7 +137,7 @@ trait Util {
    *
    * @return Current time in Unix Epoch
    */
-  def generateTimestamp: Long = Platform.currentTime / 1000
+  def generateTimestamp(): TimeStamp = Platform.currentTime / 1000
 
   /**
    * Default nonce generator

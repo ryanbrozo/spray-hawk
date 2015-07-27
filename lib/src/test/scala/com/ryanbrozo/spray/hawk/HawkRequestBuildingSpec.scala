@@ -33,19 +33,21 @@ import spray.http._
  *
  * Created by rye on 12/4/14 6:32 PM.
  */
-class HawkRequestBuildingSpec extends Specification with HawkRequestBuilding {
+class HawkRequestBuildingSpec extends Specification with HawkRequestBuilding with Util{
 
   val hawkCreds = HawkCredentials("dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256)
 
+  var ts = 1
+
   "The HawkRequestBuilding trait" should {
     "be able to add the correct Hawk Authorization header" in {
-      Get("http://example.com:8000/resource/1?b=1&a=2") ~> addHawkCredentials(1353832234, "j4h3g2", "some-app-ext-data")(hawkCreds, withPayloadValidation = false) ===
+      Get("http://example.com:8000/resource/1?b=1&a=2") ~> addHawkCredentials(() => 1353832234, "j4h3g2", "some-app-ext-data")(hawkCreds, withPayloadValidation = false) ===
         HttpRequest(uri = Uri("http://example.com:8000/resource/1?b=1&a=2"),
           headers = List(RawHeader("Authorization", """Hawk id="dh37fgj492je",ts="1353832234",mac="6R4rV5iE+NPoym+WwjeHzjAGXUtLNIxmo1vpMofpLAE=",nonce="j4h3g2",ext="some-app-ext-data"""")))
     }
 
     "be able to add the correct Hawk Authorization header (with payload validation)" in {
-      Post("http://example.com:8000/resource/1?b=1&a=2", "Thank you for flying Hawk") ~> addHawkCredentials(1353832234, "j4h3g2", "some-app-ext-data")(hawkCreds, withPayloadValidation = true) ===
+      Post("http://example.com:8000/resource/1?b=1&a=2", "Thank you for flying Hawk") ~> addHawkCredentials(() => 1353832234, "j4h3g2", "some-app-ext-data")(hawkCreds, withPayloadValidation = true) ===
         HttpRequest(uri = Uri("http://example.com:8000/resource/1?b=1&a=2"),
           headers = List(RawHeader("Authorization", """Hawk id="dh37fgj492je",ts="1353832234",mac="aSe1DERmZuRl3pI36/9BdZmnErTw3sNzOOAUlfeKjVw=",nonce="j4h3g2",hash="Yi9LfIIFRtBEPt74PVmbTF/xVAwPn7ub15ePICfgnuY=",ext="some-app-ext-data"""")),
           method = HttpMethods.POST,

@@ -37,12 +37,12 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
    * Adds a Hawk Authorization header to a request
    *
    * @param credentials Hawk credentials
-   * @param ts Current timestamp
-   * @param nonce Random cryptographic nonce. See this Wikipedia [[http://en.wikipedia.org/wiki/Cryptographic_nonce article]]
+   * @param timestampProvider Function to generate current timestamp
+   * @param nonce Random cryptographic nonce. See this Wikipedia [[http://en.wikipedia.org/wiki/Cryptographic_nonce]] article
    * @param ext App-specific data
    * @return
    */
-  def addHawkCredentials(ts: TimeStamp, nonce: Nonce, ext: ExtData)
+  def addHawkCredentials(timestampProvider: TimeStampProvider, nonce: Nonce, ext: ExtData)
                         (credentials: HawkCredentials,
                          withPayloadValidation: Boolean): RequestTransformer = { request =>
 
@@ -57,8 +57,9 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
     val hawkOptions = extractHawkOptions(request, { _ => None })
 
     // Then add our user-specified parameters
+    val ts = timestampProvider().toString
     val updatedOptions = hawkOptions ++ Map(
-      HawkOptionKeys.Ts -> Option(ts.toString),
+      HawkOptionKeys.Ts -> Option(ts),
       HawkOptionKeys.Nonce -> Option(nonce),
       HawkOptionKeys.Ext -> Option(ext),
       HawkOptionKeys.Hash -> payloadHashOption

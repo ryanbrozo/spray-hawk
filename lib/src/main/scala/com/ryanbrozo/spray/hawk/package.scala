@@ -112,10 +112,15 @@ package object hawk {
   type UserRetriever[U <: HawkUser] = String => Future[Option[U]]
 
   /**
+   * Timestamp type
+   */
+  type TimeStamp = Long
+
+  /**
    * Represents a function that retrieves the current time expressed in
    * Unix time
    */
-  type CurrentTimeProvider = () => Long
+  type TimeStampProvider = () => TimeStamp
 
   /**
    * Cryptographic Nonce. See this Wikipedia [[http://en.wikipedia.org/wiki/Cryptographic_nonce article]]
@@ -127,8 +132,5 @@ package object hawk {
    */
   type ExtData = String
 
-  /**
-   * Timestamp type
-   */
-  type TimeStamp = Long
+
 }
