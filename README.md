@@ -14,7 +14,7 @@ Current Version is **0.2**. Library is considered to be in Alpha and the API is 
 case class User(name: String, id: String, key: String, algorithm: HawkHashAlgorithms) extends HawkUser
 
 // Our user credentials retriever. Currently it returns 'Bob' along with his hawk credentials
-val userCredentialsRetriever: UserRetriever[User] = { id =>
+val userCredentialsRetriever: UserRetriever[User] = { id ⇒
     Future.successful {
       if (id == "dh37fgj492je") Some(User("Bob", id, "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256))
       else None
@@ -25,14 +25,14 @@ val hawkAuthenticator = HawkAuthenticator("hawk-test", userCredentialsRetriever)
 
 startServer(interface = "localhost", port = 8080) {
   path("secured") {
-    authenticate(hawkAuthenticator) { user =>
+    authenticate(hawkAuthenticator) { user ⇒
       get {
         complete {
           s"Welcome to spray, ${user.name}!"
         }
       } ~
       post {
-        entity(as[String]) { body =>
+        entity(as[String]) { body ⇒
           complete {
             s"Welcome to spray, ${user.name}! Your post body was: $body"
           }
@@ -58,10 +58,10 @@ val responseFuture = pipeline {
 }
 
 responseFuture onComplete {
-  case Success(result) =>
+  case Success(result) ⇒
     println(result)
     shutdown()
-  case util.Failure(error) =>
+  case util.Failure(error) ⇒
     println(s"Cannot retrieve URL: $error")
     shutdown()
 }
@@ -81,10 +81,10 @@ val responseFuture = pipeline {
 }
 
 responseFuture onComplete {
-  case Success(result) =>
+  case Success(result) ⇒
     println(result)
     shutdown()
-  case util.Failure(error) =>
+  case util.Failure(error) ⇒
     println(s"Cannot retrieve URL: $error")
     shutdown()
 }

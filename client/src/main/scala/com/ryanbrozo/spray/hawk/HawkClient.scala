@@ -63,16 +63,16 @@ object HawkClient extends App with HawkRequestBuilding {
   }
 
   val resultFuture: Future[(String, String)] = for {
-    get <- getResponseFuture
-    post <- postResponseFuture
+    get ← getResponseFuture
+    post ← postResponseFuture
   } yield (get, post)
 
   resultFuture onComplete {
-    case Success((getResult, postResult)) =>
+    case Success((getResult, postResult)) ⇒
       println(getResult)
       println(postResult)
       shutdown()
-    case util.Failure(error) =>
+    case util.Failure(error) ⇒
       println(s"Cannot retrieve URL: $error")
       shutdown()
   }

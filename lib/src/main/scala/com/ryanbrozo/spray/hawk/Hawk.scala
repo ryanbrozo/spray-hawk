@@ -30,40 +30,41 @@ import javax.crypto.spec.SecretKeySpec
 import org.parboiled.common.Base64
 
 /**
- * Calculates MAC given the options passed to it
- * *
- * @param options List of parameters to be used for computing the MAC
- *                The following options are mandatory:
- *
- *                Method - HTTP request method (i.e. GET, POST, PUT, etc)
- *                Uri - Request URI
- *                Host - Host name
- *                Port - Port number
- *                Ts - Current timestamp
- *                Nonce - Arbitrary random text
- *
- *                Optional parameters
- *
- *                Ext - Application-specific data
- *                App - Application Id
- *                Dlg - Delegated by application id (Oz), requires App
- *
- *                If payload validation is used, the following options should be
- *                supplied:
- *
- *                Hash - Hash of payload as described [[https://github.com/hueniverse/hawk#payload-validation here]]
- *
- *
- */
+  * Calculates MAC given the options passed to it
+  *
+  * @param credentials User credentials to use for computing the HMAC digest
+  * @param options List of parameters to be used for computing the MAC
+  *                The following options are mandatory:
+  *
+  *                Method - HTTP request method (i.e. GET, POST, PUT, etc)
+  *                Uri - Request URI
+  *                Host - Host name
+  *                Port - Port number
+  *                Ts - Current timestamp
+  *                Nonce - Arbitrary random text
+  *
+  *                Optional parameters
+  *
+  *                Ext - Application-specific data
+  *                App - Application Id
+  *                Dlg - Delegated by application id (Oz), requires App
+  *
+  *                If payload validation is used, the following options should be
+  *                supplied:
+  *
+  *                Hash - Hash of payload as described [[https://github.com/hueniverse/hawk#payload-validation here]]
+  *
+  *
+  */
 case class Hawk(credentials: HawkUser, options: HawkOptions) {
 
   /**
-   * Normalized string that will be used for calculating the MAC
-   */
+    * Normalized string that will be used for calculating the MAC
+    */
   lazy val normalized: String = {
     import com.ryanbrozo.spray.hawk.HawkOptionKeys._
 
-    val appDlg = for (app <- options.get(App); dlg <- options.get(Dlg)) yield s"$app\n$dlg\n"
+    val appDlg = for (app ← options.get(App); dlg ← options.get(Dlg)) yield s"$app\n$dlg\n"
 
     s"""hawk.$HEADER_VERSION.header
       |${options.getOrElse(Ts, "")}
@@ -78,8 +79,8 @@ case class Hawk(credentials: HawkUser, options: HawkOptions) {
   }
 
   /**
-   * Calculated MAC
-   */
+    * Calculated MAC
+    */
   lazy val mac: String = {
     val mac = Mac.getInstance(credentials.algorithm.hmacAlgo.toString)
     mac.init(new SecretKeySpec(credentials.key.getBytes("UTF-8"), credentials.algorithm.hmacAlgo.toString))

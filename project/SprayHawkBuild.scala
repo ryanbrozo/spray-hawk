@@ -13,6 +13,7 @@ object BuildDependencies {
   val sprayUtil =       "io.spray"                  %% "spray-util"     % SPRAY_VERSION
   val sprayTestKit =    "io.spray"                  %% "spray-testkit"  % SPRAY_VERSION   % "test"
   val scalaXml =        "org.scala-lang.modules"    %% "scala-xml"      % "1.0.2"
+  val scalaz =          "org.scalaz"                %% "scalaz-core"    % "7.1.3"
   val akkaActor =       "com.typesafe.akka"         %% "akka-actor"     % "2.3.6"
   val specs2 =          "org.specs2"                %% "specs2-core"    % "2.4.13"        % "test"
 }
@@ -35,6 +36,7 @@ object BuildSettings {
 
   lazy val libSettings = Seq(
     libraryDependencies ++= Seq(
+      scalaz,
       sprayRouting,
       akkaActor,
       sprayTestKit,

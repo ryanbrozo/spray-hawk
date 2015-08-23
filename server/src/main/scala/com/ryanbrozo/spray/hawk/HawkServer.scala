@@ -22,7 +22,7 @@ object HawkServer extends App with SimpleRoutingApp {
   /**
    * Our user credentials retriever. Currently it returns 'Bob' along with his hawk credentials
    */
-  val userCredentialsRetriever: UserRetriever[User] = { id =>
+  val userCredentialsRetriever: UserRetriever[User] = { id ⇒
     Future.successful {
       if (id == "dh37fgj492je") Some(User("Bob", id, "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256))
       else None
@@ -33,14 +33,14 @@ object HawkServer extends App with SimpleRoutingApp {
 
   startServer(interface = "localhost", port = 8080) {
     path("secured") {
-      authenticate(hawkAuthenticator) { user =>
+      authenticate(hawkAuthenticator) { user ⇒
         get {
           complete {
             s"Welcome to spray, ${user.name}!"
           }
         } ~
         post {
-          entity(as[String]) { body =>
+          entity(as[String]) { body ⇒
             complete {
               s"Welcome to spray, ${user.name}! Your post body was: $body"
             }

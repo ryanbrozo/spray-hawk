@@ -49,12 +49,12 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
     // Do we need to compute 'hash' param?
     val payloadHashOption = if (withPayloadValidation) {
       extractPayload(request) map {
-        case (payload, contentType) => HawkPayload(payload, contentType, credentials.algorithm.hashAlgo).hash
+        case (payload, contentType) ⇒ HawkPayload(payload, contentType, credentials.algorithm.hashAlgo).hash
       }
     } else None
 
     // First, let's extract URI-related hawk options
-    val hawkOptions = extractHawkOptions(request, { _ => None })
+    val hawkOptions = extractHawkOptions(request, { _ ⇒ None })
 
     // Then add our user-specified parameters
     val ts = timestampProvider().toString
@@ -64,7 +64,7 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
       HawkOptionKeys.Nonce -> Option(nonce),
       HawkOptionKeys.Ext -> Option(ext),
       HawkOptionKeys.Hash -> payloadHashOption
-    ).collect { case (k, Some(v)) => k -> v }
+    ).collect { case (k, Some(v)) ⇒ k -> v }
 
     // Compute our MAC
     val mac = Hawk(credentials, updatedOptions).mac
@@ -78,7 +78,7 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
       HawkAuthKeys.Mac -> Option(mac),
       HawkAuthKeys.Hash -> payloadHashOption
     )
-      .collect({ case (k, Some(v)) => k.toString + "=" + "\"" + v + "\"" })
+      .collect({ case (k, Some(v)) ⇒ k.toString + "=" + "\"" + v + "\"" })
       .mkString(",")
 
     HttpHeaders.RawHeader("Authorization", s"Hawk $authHeader")

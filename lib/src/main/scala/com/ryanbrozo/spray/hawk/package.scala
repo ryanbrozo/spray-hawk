@@ -109,7 +109,7 @@ package object hawk {
    *
    * @tparam U Type of user to be retrieved. Should implement HawkUser trait
    */
-  type UserRetriever[U <: HawkUser] = String => Future[Option[U]]
+  type UserRetriever[U <: HawkUser] = String ⇒ Future[Option[U]]
 
   /**
    * Timestamp type
