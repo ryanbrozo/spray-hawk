@@ -101,7 +101,11 @@ class HawkAuthenticatorSpec
   /**
    * Expected challenge header when request is rejected because of timestamp
    */
-  val challengeHeadersWithTimestamp = `WWW-Authenticate`(HttpChallenge("Hawk", realm, Map("ts" → defaultTime.toString, "tsm" -> "2mw1eh/qXzl0wJZ/E6XvBhRMEJN7L3j8AyMA8eItEb0="))) :: Nil
+  val challengeHeadersWithTimestamp = `WWW-Authenticate`(HttpChallenge("Hawk", realm, Map(
+    "ts" → defaultTime.toString,
+    "tsm" -> "2mw1eh/qXzl0wJZ/E6XvBhRMEJN7L3j8AyMA8eItEb0=",
+    "error" -> "Stale timestamp"
+  ))) :: Nil
 
   /**
    * Example payload

@@ -38,13 +38,15 @@ import scalaz._
 
 object HawkAuthenticator extends Util {
 
-  abstract sealed class HawkError
+  abstract sealed class HawkError() {
+    val message: String
+  }
 
-  case object InvalidUserError extends HawkError
-  case object InvalidMacError extends HawkError
-  case object InvalidPayloadHashError extends HawkError
-  case class StaleTimestampError(hawkUser: HawkUser) extends HawkError
-  
+  case object InvalidUserError extends HawkError {val message = "Unknown credentials"}
+  case object InvalidMacError extends HawkError {val message = "Bad mac"}
+  case object InvalidPayloadHashError extends HawkError {val message = "Bad payload hash"}
+  case class StaleTimestampError(hawkUser: HawkUser) extends HawkError {val message = "Stale timestamp"}
+
   private val _conf = ConfigFactory.load()
   
   private[hawk] val payloadValidationEnabled = _conf.getBoolean("spray.hawk.payloadValidation")
@@ -126,7 +128,11 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider)(rea
     val f = hawkUserOption map { validateCredentials(_, hawkHttpCredentials) } map {
       case -\/(err:StaleTimestampError) =>
         val currentTimestamp = timestampProvider()
-        val params = Map("ts" -> currentTimestamp.toString, "tsm" -> HawkTimestamp(currentTimestamp, err.hawkUser).mac)
+        val params = Map(
+          "ts" -> currentTimestamp.toString,
+          "tsm" -> HawkTimestamp(currentTimestamp, err.hawkUser).mac,
+          "error" -> err.message
+        )
         `WWW-Authenticate`(HttpChallenge(SCHEME, realm, params)) :: Nil
       case _ =>
         `WWW-Authenticate`(HttpChallenge(SCHEME, realm)) :: Nil
