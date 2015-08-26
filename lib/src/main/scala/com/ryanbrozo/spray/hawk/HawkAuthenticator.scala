@@ -50,6 +50,7 @@ object HawkAuthenticator extends Util {
   private val _conf = ConfigFactory.load()
   
   private[hawk] val payloadValidationEnabled = _conf.getBoolean("spray.hawk.payloadValidation")
+  private[hawk] val timeSkewValidationEnabled = _conf.getBoolean("spray.hawk.timeSkewValidation")
   private[hawk] val timeSkewInSeconds = _conf.getLong("spray.hawk.timeSkewInSeconds")
   
   def apply[U <: HawkUser](realm: String, userRetriever: UserRetriever[U])(implicit executionContext: ExecutionContext) =
@@ -103,14 +104,17 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider)(rea
     }
 
     def checkTimestamp(hawkUser: U): \/[HawkError, Option[U]] = {
-      val timestamp = hawkCredentials.ts
-      val currentTimestamp = timestampProvider()
-      val lowerBound = currentTimestamp - timeSkewInSeconds
-      val upperBound = currentTimestamp + timeSkewInSeconds
-      if (lowerBound <= timestamp && timestamp <= upperBound)
-        Option(hawkUser).right[HawkError]
-      else
-        StaleTimestampError(hawkUser).left[Option[U]]
+      if (timeSkewValidationEnabled) {
+        val timestamp = hawkCredentials.ts
+        val currentTimestamp = timestampProvider()
+        val lowerBound = currentTimestamp - timeSkewInSeconds
+        val upperBound = currentTimestamp + timeSkewInSeconds
+        if (lowerBound <= timestamp && timestamp <= upperBound)
+          Option(hawkUser).right[HawkError]
+        else
+          StaleTimestampError(hawkUser).left[Option[U]]
+      }
+      else Option(hawkUser).right[HawkError]
     }
 
     hawkUserOption map { hawkUser =>
