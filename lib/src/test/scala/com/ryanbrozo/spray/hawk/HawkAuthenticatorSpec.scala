@@ -93,6 +93,14 @@ class HawkAuthenticatorSpec
   })
 
   /**
+   * A Hawk authenticator which throws an exception
+   */
+  val hawkDoAuthWithException = HawkAuthenticator[User](defaultTimeGenerator _)(realm,
+  { _ ⇒
+    throw new Exception("Cannot retrieve a user")
+  })
+
+  /**
    * Expected challenge header when requesst is rejected
    */
   val challengeHeaders = `WWW-Authenticate`(HttpChallenge("Hawk", realm, Map.empty)) :: Nil
@@ -246,8 +254,7 @@ class HawkAuthenticatorSpec
         rejection === AuthenticationFailedRejection(CredentialsRejected, challengeHeadersWithTimestamp)
       }
     }
-    "extract the object representing the user identity created by successful authentication " +
-      "in a POST request (with payload validation)" in {
+    "extract the object representing the user identity created by successful authentication in a POST request (with payload validation)" in {
       Post("http://example.com:8000/resource/1?b=1&a=2", "Thank you for flying Hawk") ~>
         `Content-Type`(ContentType(spray.http.MediaTypes.`text/plain`)) ~>
         Authorization(hawkCredentials_POST_withPortWithPayload) ~> {
@@ -276,6 +283,17 @@ class HawkAuthenticatorSpec
         }
       } ~> check {
         responseAs[String] === "Bob"
+      }
+    }
+    "reject requests when an exception is encountered while retrieving a user" in {
+      Post("http://example.com:8000/resource/1?b=1&a=2", "Thank you for flying Hawk") ~>
+        `Content-Type`(ContentType(spray.http.MediaTypes.`text/plain`)) ~>
+        Authorization(hawkCredentials_POST_withPortWithPayload) ~> {
+        authenticate(hawkDoAuthWithException) { user ⇒
+          complete(user.name)
+        }
+      } ~> check {
+        rejection === AuthenticationFailedRejection(CredentialsRejected, challengeHeaders)
       }
     }
   }

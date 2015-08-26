@@ -25,6 +25,7 @@
 package com.ryanbrozo.spray.hawk
 
 import com.typesafe.config.ConfigFactory
+import com.typesafe.scalalogging.StrictLogging
 import spray.http.HttpHeaders._
 import spray.http._
 import spray.routing.RequestContext
@@ -33,6 +34,7 @@ import spray.routing.authentication.HttpAuthenticator
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.language.{postfixOps, implicitConversions}
+import scala.util.Try
 import scalaz.Scalaz._
 import scalaz._
 
@@ -72,7 +74,8 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider)(rea
                                 userRetriever: UserRetriever[U])
                                (implicit val executionContext: ExecutionContext)
   extends HttpAuthenticator[U]
-  with Util {
+  with Util
+  with StrictLogging {
   
   import HawkAuthenticator._
 
@@ -127,28 +130,52 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider)(rea
   }  
 
   override def getChallengeHeaders(httpRequest: HttpRequest): List[HttpHeader] = {
+    // Unfortunately, due to the design of spray.io, there is a need to
+    // do all the validation again just to create the required WWW-Authenticate headers.
+    // This can be costly, since we need to call the supplied userRetriever function again.
+    // See https://github.com/spray/spray/issues/938 for more details
+
     val hawkHttpCredentials = HawkHttpCredentials(httpRequest)
-    val hawkUserOption = userRetriever(hawkHttpCredentials.id)
-    val f = hawkUserOption map { validateCredentials(_, hawkHttpCredentials) } map {
-      case -\/(err:StaleTimestampError) =>
-        val currentTimestamp = timestampProvider()
-        val params = Map(
-          "ts" -> currentTimestamp.toString,
-          "tsm" -> HawkTimestamp(currentTimestamp, err.hawkUser).mac,
-          "error" -> err.message
-        )
-        `WWW-Authenticate`(HttpChallenge(SCHEME, realm, params)) :: Nil
-      case _ =>
+    val userTry = Try {
+      // Assume the supplied userRetriever function can throw an exception
+      userRetriever(hawkHttpCredentials.id)
+    }
+    userTry match {
+      case scala.util.Success(userFuture) =>
+        val f = userFuture map { validateCredentials(_, hawkHttpCredentials) } map {
+          case -\/(err:StaleTimestampError) =>
+            val currentTimestamp = timestampProvider()
+            val params = Map(
+              "ts" -> currentTimestamp.toString,
+              "tsm" -> HawkTimestamp(currentTimestamp, err.hawkUser).mac,
+              "error" -> err.message
+            )
+            `WWW-Authenticate`(HttpChallenge(SCHEME, realm, params)) :: Nil
+          case _ =>
+            `WWW-Authenticate`(HttpChallenge(SCHEME, realm)) :: Nil
+        }
+        Await.result(f, 60 milliseconds)
+      case scala.util.Failure(e) =>
+        logger.warn(s"An error occurred while retrieving a hawk user: ${e.getMessage}")
         `WWW-Authenticate`(HttpChallenge(SCHEME, realm)) :: Nil
     }
-    Await.result(f, 60 milliseconds)
   }
 
   override def authenticate(credentials: Option[HttpCredentials], ctx: RequestContext): Future[Option[U]] = {
     val hawkHttpCredentials = HawkHttpCredentials(ctx.request)
-    userRetriever(hawkHttpCredentials.id) map { validateCredentials(_, hawkHttpCredentials) } map {
-      case \/-(user) => user
-      case _ => None
+    val userTry = Try {
+      // Assume the supplied userRetriever function can throw an exception
+      userRetriever(hawkHttpCredentials.id)
+    }
+    userTry match {
+      case scala.util.Success(userFuture) =>
+        userFuture map { validateCredentials(_, hawkHttpCredentials) } map {
+          case \/-(user) => user
+          case _ => None
+        }
+      case scala.util.Failure(e) =>
+        logger.warn(s"An error occurred while retrieving a hawk user: ${e.getMessage}")
+        Future.successful(None)
     }
   }
 }
