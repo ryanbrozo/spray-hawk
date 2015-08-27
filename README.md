@@ -4,7 +4,7 @@ spray-hawk
 
 **spray-hawk** is a library that adds [Hawk Authentication](https://github.com/hueniverse/hawk) to Spray. It can be used for both server (via [spray-routing](http://spray.io/documentation/1.2.2/spray-routing/)) and client side (via [spray-client](http://spray.io/documentation/1.2.2/spray-client/)).
 
-Current Version is **0.2**. Library is considered to be in Alpha and the API is still unstable. However, it is usable, though the current implementation is still lacking some [features](https://github.com/ryanbrozo/spray-hawk#features-to-be-implemented) of the protocol.
+Current Version is **0.3**. Library is considered to be in Alpha and the API is still unstable. However, it is usable, though the current implementation is still lacking some [features](https://github.com/ryanbrozo/spray-hawk#features-to-be-implemented) of the protocol.
 
 ####Server Usage Example:
 ``` scala
@@ -107,7 +107,7 @@ The client will connect to same URL, and you should get a `Welcome to spray, Bob
 (TODO)
 
 ####Features to be implemented
-* [Replay Protection](https://github.com/ryanbrozo/spray-hawk/issues/1)
+* ~~[Replay Protection](https://github.com/ryanbrozo/spray-hawk/issues/1)~~
 * [Response Payload Valdiation](https://github.com/ryanbrozo/spray-hawk/issues/3)
 * [Single URI Authorization](https://github.com/ryanbrozo/spray-hawk/issues/4)
 

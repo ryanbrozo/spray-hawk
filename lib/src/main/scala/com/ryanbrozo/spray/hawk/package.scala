@@ -57,13 +57,32 @@ package object hawk {
   case object HawkSHA1 extends HawkHashAlgorithms { val hmacAlgo = MacAlgorithms.HmacSHA1; val hashAlgo = HashAlgorithms.SHA1 }
   case object HawkSHA256 extends HawkHashAlgorithms { val hmacAlgo = MacAlgorithms.HmacSHA256; val hashAlgo = HashAlgorithms.SHA256 }
 
+  /**
+   * Timestamp type
+   */
+  type TimeStamp = Long
+
+  /**
+   * Cryptographic Nonce. See this Wikipedia [[http://en.wikipedia.org/wiki/Cryptographic_nonce article]]
+   */
+  type Nonce = String
+
+  /**
+   * Data type representing a user's key identifier
+   */
+  type Key = String
+
+  /**
+   * App-specific data
+   */
+  type ExtData = String
 
   /**
    * Trait which represents a user entity with Hawk credentials. Modeled user entities
    * must implement this trait in order for authentication to work
    */
   trait HawkUser {
-    val key: String
+    val key: Key
     val algorithm: HawkHashAlgorithms
   }
 
@@ -110,20 +129,6 @@ package object hawk {
    */
   type UserRetriever[U <: HawkUser] = String ⇒ Future[Option[U]]
 
-  /**
-   * Timestamp type
-   */
-  type TimeStamp = Long
-
-  /**
-   * Cryptographic Nonce. See this Wikipedia [[http://en.wikipedia.org/wiki/Cryptographic_nonce article]]
-   */
-  type Nonce = String
-
-  /**
-   * App-specific data
-   */
-  type ExtData = String
 
   /**
    * Represents a function that retrieves the current time expressed in
@@ -135,5 +140,10 @@ package object hawk {
    * Represents a function that generates a random cryptographic nonce
    */
   type NonceProvider = () => Nonce
+
+  /**
+   * Represents a function that validates a nonce's uniqueness with the same timestamp and key identifier combination
+   */
+  type NonceValidator = (Nonce, Key, TimeStamp) => Boolean
 
 }

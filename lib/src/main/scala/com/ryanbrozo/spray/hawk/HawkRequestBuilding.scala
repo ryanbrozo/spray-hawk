@@ -91,6 +91,6 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
   }
 
   def addHawkCredentials(ext: ExtData)(credentials: HawkCredentials, withPayloadValidation: Boolean = false): RequestTransformer =
-    addHawkCredentials(generateTimestamp, generateNonce, ext)(credentials, withPayloadValidation)
+    addHawkCredentials(Util.defaultTimestampProvider, Util.defaultNonceGenerator, ext)(credentials, withPayloadValidation)
 
 }

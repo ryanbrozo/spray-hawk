@@ -47,21 +47,29 @@ object HawkAuthenticator extends Util {
   case object InvalidUserError extends HawkError {val message = "Unknown credentials"}
   case object InvalidMacError extends HawkError {val message = "Bad mac"}
   case object InvalidPayloadHashError extends HawkError {val message = "Bad payload hash"}
+  case object InvalidNonceError extends HawkError {val message = "Invalid nonce"}
   case class StaleTimestampError(hawkUser: HawkUser) extends HawkError {val message = "Stale timestamp"}
 
   private val _conf = ConfigFactory.load()
   
-  private[hawk] val payloadValidationEnabled = _conf.getBoolean("spray.hawk.payloadValidation")
-  private[hawk] val timeSkewValidationEnabled = _conf.getBoolean("spray.hawk.timeSkewValidation")
-  private[hawk] val timeSkewInSeconds = _conf.getLong("spray.hawk.timeSkewInSeconds")
+  private[hawk] val _payloadValidationEnabled = _conf.getBoolean("spray.hawk.payloadValidation")
+  private[hawk] val _timeSkewValidationEnabled = _conf.getBoolean("spray.hawk.timeSkewValidation")
+  private[hawk] val _timeSkewInSeconds = _conf.getLong("spray.hawk.timeSkewInSeconds")
   
   def apply[U <: HawkUser](realm: String, userRetriever: UserRetriever[U])(implicit executionContext: ExecutionContext) =
-    new HawkAuthenticator(generateTimestamp)(realm, userRetriever)
+    new HawkAuthenticator(Util.defaultTimestampProvider, defaultNonceValidator)(realm, userRetriever)
 
-  def apply[U <: HawkUser](ts: TimeStampProvider)(realm: String,userRetriever: UserRetriever[U])
-                          (implicit executionContext: ExecutionContext) = new HawkAuthenticator(ts)(realm, userRetriever)
+  def apply[U <: HawkUser](tsProvider: TimeStampProvider)(realm: String,userRetriever: UserRetriever[U])
+                          (implicit executionContext: ExecutionContext) =
+    new HawkAuthenticator(tsProvider, defaultNonceValidator)(realm, userRetriever)
 
-  implicit def toFuture[U](value: U): Future[U] = Future.successful(value)
+  def apply[U <: HawkUser](nonceValidator: NonceValidator)(realm: String,userRetriever: UserRetriever[U])
+                          (implicit executionContext: ExecutionContext) =
+    new HawkAuthenticator(Util.defaultTimestampProvider, nonceValidator)(realm, userRetriever)
+
+  def apply[U <: HawkUser](tsProvider: TimeStampProvider, nonceValidator: NonceValidator)(realm: String,userRetriever: UserRetriever[U])
+                          (implicit executionContext: ExecutionContext) =
+    new HawkAuthenticator(tsProvider, nonceValidator)(realm, userRetriever)
 
 }
 
@@ -70,7 +78,7 @@ object HawkAuthenticator extends Util {
  * HTTP `Authorization` header to authenticate the user and extract a user object.
  *
  */
-class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider)(realm: String,
+class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider, nonceValidator: NonceValidator)(realm: String,
                                 userRetriever: UserRetriever[U])
                                (implicit val executionContext: ExecutionContext)
   extends HttpAuthenticator[U]
@@ -83,15 +91,15 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider)(rea
 
   private def validateCredentials(hawkUserOption: Option[U], hawkCredentials: HawkHttpCredentials): \/[HawkError, Option[U]] = {
 
-    def checkMac(hawkUser: U): \/[HawkError, Option[U]] = {
+    def checkMac(implicit hawkUser: U): \/[HawkError, Option[U]] = {
       (for {
         mac <- hawkCredentials.mac if mac == Hawk(hawkUser, hawkCredentials.options).mac
       } yield Option(hawkUser).right[HawkError]) | InvalidMacError.left[Option[U]]
     }
 
-    def checkPayload(hawkUser: U): \/[HawkError, Option[U]] = {
+    def checkPayload(implicit hawkUser: U): \/[HawkError, Option[U]] = {
       hawkCredentials.hash match {
-        case Some(hash) if payloadValidationEnabled =>
+        case Some(hash) if _payloadValidationEnabled =>
           // According to Hawk specs, payload validation should should only
           // happen if MAC is validated.
           (for {
@@ -106,12 +114,19 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider)(rea
       }
     }
 
-    def checkTimestamp(hawkUser: U): \/[HawkError, Option[U]] = {
-      if (timeSkewValidationEnabled) {
+    def checkNonce(implicit hawkUser: U): \/[HawkError, Option[U]] = {
+      hawkCredentials.nonce match {
+        case Some(n) if nonceValidator(n, hawkUser.key, hawkCredentials.ts) => Option(hawkUser).right[HawkError]
+        case _ => InvalidNonceError.left[Option[U]]
+      }
+    }
+
+    def checkTimestamp(implicit hawkUser: U): \/[HawkError, Option[U]] = {
+      if (_timeSkewValidationEnabled) {
         val timestamp = hawkCredentials.ts
         val currentTimestamp = timestampProvider()
-        val lowerBound = currentTimestamp - timeSkewInSeconds
-        val upperBound = currentTimestamp + timeSkewInSeconds
+        val lowerBound = currentTimestamp - _timeSkewInSeconds
+        val upperBound = currentTimestamp + _timeSkewInSeconds
         if (lowerBound <= timestamp && timestamp <= upperBound)
           Option(hawkUser).right[HawkError]
         else
@@ -120,11 +135,12 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider)(rea
       else Option(hawkUser).right[HawkError]
     }
 
-    hawkUserOption map { hawkUser =>
+    hawkUserOption map { implicit hawkUser =>
       for {
-        macOk <- checkMac(hawkUser)
-        payloadOk <- checkPayload(hawkUser)
-        tsOk <- checkTimestamp(hawkUser)
+        macOk <- checkMac
+        payloadOk <- checkPayload
+        nonceOk <- checkNonce
+        tsOk <- checkTimestamp
       } yield tsOk
     } getOrElse InvalidUserError.left[Option[U]]
   }  

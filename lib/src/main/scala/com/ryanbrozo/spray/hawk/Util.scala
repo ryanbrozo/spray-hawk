@@ -25,13 +25,17 @@
 package com.ryanbrozo.spray.hawk
 
 import com.typesafe.config.ConfigFactory
-import spray.http.HttpEntity.{ Empty, NonEmpty }
+import com.typesafe.scalalogging.StrictLogging
+import spray.caching.ExpiringLruCache
+import spray.http.HttpEntity.{Empty, NonEmpty}
 import spray.http.HttpHeaders.RawHeader
 import spray.http.HttpRequest
 import spray.http.Uri.Query
 
 import scala.compat.Platform
 import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.language.postfixOps
 import scala.util.Random
 
 /**
@@ -40,20 +44,66 @@ import scala.util.Random
   * Created by rye on 12/4/14 2:17 PM.
   */
 
-private object Util {
+object Util {
 
   private val MINIMUM_NONCE_LENGTH = 6
 
   private val _conf = ConfigFactory.load()
 
-  val nonceLength = {
+  private val nonceLength = {
     val v = _conf.getInt("spray.hawk.nonceLength")
     if (v < MINIMUM_NONCE_LENGTH) MINIMUM_NONCE_LENGTH else v
   }
 
+  private val _maxCacheCapacity = _conf.getInt("spray.hawk.cachingNonceValidator.maximumCapacity")
+  private val _initialCacheCapacity = _conf.getInt("spray.hawk.cachingNonceValidator.initialCapacity")
+
+  // TTL and TTI setting is derived from time skew settings. This value will be multiplied by 2
+  // to accommodate period left and right of the current time
+  private val _timeToIdleInSeconds = (_conf.getInt("spray.hawk.timeSkewInSeconds") * 2) seconds
+  private val _timeToLiveInSeconds= _timeToIdleInSeconds + (1 second)
+
+  private val _cache = new ExpiringLruCache[TimeStamp](_maxCacheCapacity, _initialCacheCapacity, _timeToLiveInSeconds, _timeToIdleInSeconds)
+
+  /**
+   * Default nonce validator. Uses an in-memory cache to validate nonces
+   *
+   * @param nonce Nonce to valiaate
+   * @param key Key identifier
+   * @param ts timestamp
+   * @return True, if nonce is valid. False, if not
+   */
+  def cachingNonceValidator(nonce: Nonce, key: Key, ts: TimeStamp): Boolean = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    val cacheKey = s"${nonce}_${key}_$ts"
+    _cache.get(cacheKey) match {
+      case Some(_) =>
+        // Nonce-key-ts combination exists, which means these have been
+        // used in a previous request
+        false
+      case None =>
+        _cache(cacheKey){ts}
+        true
+    }
+  }
+
+  /**
+   * Default timestamp generator
+   *
+   * @return Current time in Unix Epoch
+   */
+  def defaultTimestampProvider(): TimeStamp = Platform.currentTime / 1000
+
+  /**
+   * Default nonce generator
+   *
+   * @return Random string of length defined in the configuration file.
+   */
+  def defaultNonceGenerator(): Nonce = Random.alphanumeric.take(nonceLength).mkString
 }
 
-trait Util {
+private[hawk] trait Util extends StrictLogging {
   import Util._
 
   /**
@@ -144,17 +194,13 @@ trait Util {
   }
 
   /**
-    * Default timestamp generator
-    *
-    * @return Current time in Unix Epoch
-    */
-  def generateTimestamp(): TimeStamp = Platform.currentTime / 1000
-
-  /**
-    * Default nonce generator
-    *
-    * @return Random string of length defined in the configuration file.
-    */
-  def generateNonce(): Nonce = Random.alphanumeric.take(nonceLength).mkString
+   * Default nonce validator. Doesn't really validate nonces and just returns True
+   *
+   * @param nonce Nonce to valiaate
+   * @param key Key identifier
+   * @param ts timestamp
+   * @return True everytime
+   */
+  def defaultNonceValidator(nonce: Nonce, key: Key, ts: TimeStamp): Boolean = true
 
 }

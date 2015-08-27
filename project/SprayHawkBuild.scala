@@ -11,6 +11,7 @@ object BuildDependencies {
   val sprayHttp =       "io.spray"                      %% "spray-http"         % SPRAY_VERSION
   val sprayHttpX =      "io.spray"                      %% "spray-httpx"        % SPRAY_VERSION
   val sprayUtil =       "io.spray"                      %% "spray-util"         % SPRAY_VERSION
+  val sprayCaching =    "io.spray"                      %% "spray-caching"      % SPRAY_VERSION
   val sprayTestKit =    "io.spray"                      %% "spray-testkit"      % SPRAY_VERSION   % "test"
   val scalaLogging =    "com.typesafe.scala-logging"    %% "scala-logging"      % "3.1.0"
   val logback =         "ch.qos.logback"                %  "logback-classic"    % "1.0.13"
@@ -24,7 +25,7 @@ object BuildSettings {
   import BuildDependencies._
 
   val SCALA_VERSION = "2.11.4"
-  val APP_VERSION = "0.2"
+  val APP_VERSION = "0.3"
 
   lazy val commonSettings = Seq(
     organization        := "com.ryanbrozo",
@@ -40,6 +41,7 @@ object BuildSettings {
     libraryDependencies ++= Seq(
       scalaz,
       sprayRouting,
+      sprayCaching,
       akkaActor,
       scalaLogging,
       logback,
@@ -54,6 +56,8 @@ object BuildSettings {
       sprayRouting,
       sprayCan,
       sprayIo,
+      scalaLogging,
+      logback,
       akkaActor,
       scalaXml
     )

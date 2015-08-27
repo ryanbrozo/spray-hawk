@@ -101,6 +101,15 @@ class HawkAuthenticatorSpec
   })
 
   /**
+   * A Hawk authenticator which always authenticates but checks for validity of nonces
+   */
+  val hawkDoAuthTimeAgnosticValidatesNonce = HawkAuthenticator[User](
+    defaultTimeGenerator _, Util.cachingNonceValidator _)(realm,
+  { _ ⇒
+    Future.successful(Some(hawkUser))
+  })
+
+  /**
    * Expected challenge header when requesst is rejected
    */
   val challengeHeaders = `WWW-Authenticate`(HttpChallenge("Hawk", realm, Map.empty)) :: Nil
@@ -286,10 +295,24 @@ class HawkAuthenticatorSpec
       }
     }
     "reject requests when an exception is encountered while retrieving a user" in {
-      Post("http://example.com:8000/resource/1?b=1&a=2", "Thank you for flying Hawk") ~>
-        `Content-Type`(ContentType(spray.http.MediaTypes.`text/plain`)) ~>
-        Authorization(hawkCredentials_POST_withPortWithPayload) ~> {
+      Get("http://example.com:8000/resource/1?b=1&a=2") ~> Authorization(hawkCredentials_GET_withPort) ~> {
         authenticate(hawkDoAuthWithException) { user ⇒
+          complete(user.name)
+        }
+      } ~> check {
+        rejection === AuthenticationFailedRejection(CredentialsRejected, challengeHeaders)
+      }
+    }
+    "reject requests when nonce is non-unique" in {
+      Get("http://example.com:8000/resource/1?b=1&a=2") ~> Authorization(hawkCredentials_GET_withPort) ~> {
+        authenticate(hawkDoAuthTimeAgnosticValidatesNonce) { user ⇒
+          complete(user.name)
+        }
+      } ~> check {
+        responseAs[String] === "Bob"
+      }
+      Get("http://example.com:8000/resource/1?b=1&a=2") ~> Authorization(hawkCredentials_GET_withPort) ~> {
+        authenticate(hawkDoAuthTimeAgnosticValidatesNonce) { user ⇒
           complete(user.name)
         }
       } ~> check {
