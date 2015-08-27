@@ -63,7 +63,6 @@ package object hawk {
    * must implement this trait in order for authentication to work
    */
   trait HawkUser {
-    val id: String
     val key: String
     val algorithm: HawkHashAlgorithms
   }
@@ -136,8 +135,5 @@ package object hawk {
    * Represents a function that generates a random cryptographic nonce
    */
   type NonceProvider = () => Nonce
-
-
-
 
 }
