@@ -68,11 +68,11 @@ object HawkClient extends App with HawkRequestBuilding {
   } yield (get, post)
 
   resultFuture onComplete {
-    case Success((getResult, postResult)) ⇒
+    case Success((getResult, postResult)) =>
       println(getResult)
       println(postResult)
       shutdown()
-    case util.Failure(error) ⇒
+    case util.Failure(error) =>
       println(s"Cannot retrieve URL: $error")
       shutdown()
   }

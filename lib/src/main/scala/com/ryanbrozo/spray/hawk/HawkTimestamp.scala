@@ -39,12 +39,12 @@ import org.parboiled.common.Base64
  *
  * Created by rye on 2/6/15.
  */
-case class HawkTimestamp(ts: Long, credentials: HawkUser) {
+private[hawk] case class HawkTimestamp(ts: Long, credentials: HawkUser) {
 
   /**
    * Normalized string that will be used for calculating the MAC
    */
-  lazy val normalized: String = {
+  private lazy val normalized: String = {
     s"""hawk.$HEADER_VERSION.ts
       |$ts
       |""".stripMargin

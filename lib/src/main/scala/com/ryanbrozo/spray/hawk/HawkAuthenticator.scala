@@ -57,11 +57,11 @@ object HawkAuthenticator extends Util {
   private[hawk] val _timeSkewInSeconds = _conf.getLong("spray.hawk.timeSkewInSeconds")
   
   def apply[U <: HawkUser](realm: String, userRetriever: UserRetriever[U])(implicit executionContext: ExecutionContext) =
-    new HawkAuthenticator(Util.defaultTimestampProvider, defaultNonceValidator)(realm, userRetriever)
+    new HawkAuthenticator(Util.defaultTimestampProvider, Util.defaultNonceValidator)(realm, userRetriever)
 
   def apply[U <: HawkUser](tsProvider: TimeStampProvider)(realm: String,userRetriever: UserRetriever[U])
                           (implicit executionContext: ExecutionContext) =
-    new HawkAuthenticator(tsProvider, defaultNonceValidator)(realm, userRetriever)
+    new HawkAuthenticator(tsProvider, Util.defaultNonceValidator)(realm, userRetriever)
 
   def apply[U <: HawkUser](nonceValidator: NonceValidator)(realm: String,userRetriever: UserRetriever[U])
                           (implicit executionContext: ExecutionContext) =
@@ -74,15 +74,51 @@ object HawkAuthenticator extends Util {
 }
 
 /**
- * A HawkAuthenticator is a ContextAuthenticator that uses credentials passed to the server via the
- * HTTP `Authorization` header to authenticate the user and extract a user object.
+ * A ContextAuthenticator passed to Spray that validates the credentials passed via the HTTP `Authorization` header
+ * using the Hawk Authentication protocol to authenticate the user and extract a user object.
+ *
+ * Example usage:
+ *
+ * {{{
+ * // Our User model. This needs to extend the HawkUser trait for our UserCredentialsRetriever
+ * // to work
+ * case class User(name: String, key: String, algorithm: HawkHashAlgorithms) extends HawkUser
+ *
+ * // Our user credentials retriever. Currently it returns 'Bob' along with his hawk credentials
+ * val userCredentialsRetriever: UserRetriever[User] = { id =>
+ *     Future.successful {
+ *       if (id == "dh37fgj492je") Some(User("Bob", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256))
+ *       else None
+ *     }
+ * }
+ *
+ * val hawkAuthenticator = HawkAuthenticator("hawk-test", userCredentialsRetriever)
+ *
+ * startServer(interface = "localhost", port = 8080) {
+ *   path("secured") {
+ *     authenticate(hawkAuthenticator) { user =>
+ *       get {
+ *         complete {
+ *           s"Welcome to spray, \${user.name}!"
+ *         }
+ *       } ~
+ *       post {
+ *         entity(as[String]) { body =>
+ *           complete {
+ *             s"Welcome to spray, \${user.name}! Your post body was: \$body"
+ *           }
+ *         }
+ *       }
+ *     }
+ *   }
+ * }
+ * }}}
  *
  */
 class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider, nonceValidator: NonceValidator)(realm: String,
                                 userRetriever: UserRetriever[U])
                                (implicit val executionContext: ExecutionContext)
   extends HttpAuthenticator[U]
-  with Util
   with StrictLogging {
   
   import HawkAuthenticator._

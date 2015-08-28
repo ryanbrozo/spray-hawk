@@ -36,12 +36,12 @@ import org.parboiled.common.Base64
  * @param contentType Content-Type of the payload
  * @param algorithm Hashing algorithm to use
  */
-case class HawkPayload(payload: Array[Byte], contentType: String, algorithm: HashAlgorithms.Value) {
+private[hawk] case class HawkPayload(payload: Array[Byte], contentType: String, algorithm: HashAlgorithms.Value) {
 
   /**
    * Normalized request string
    */
-  lazy val normalized: String = {
+  private[hawk] lazy val normalized: String = {
     s"""hawk.$HEADER_VERSION.payload
      |${contentType.toLowerCase}
      |${new String(payload, "UTF-8")}

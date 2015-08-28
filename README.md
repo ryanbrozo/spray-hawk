@@ -11,12 +11,12 @@ Current Version is **0.3**. Library is considered to be in Alpha and the API is 
 
 // Our User model. This needs to extend the HawkUser trait for our UserCredentialsRetriever
 // to work
-case class User(name: String, id: String, key: String, algorithm: HawkHashAlgorithms) extends HawkUser
+case class User(name: String, key: String, algorithm: HawkHashAlgorithms) extends HawkUser
 
 // Our user credentials retriever. Currently it returns 'Bob' along with his hawk credentials
-val userCredentialsRetriever: UserRetriever[User] = { id ⇒
+val userCredentialsRetriever: UserRetriever[User] = { id =>
     Future.successful {
-      if (id == "dh37fgj492je") Some(User("Bob", id, "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256))
+      if (id == "dh37fgj492je") Some(User("Bob", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256))
       else None
     }
 }
@@ -25,14 +25,14 @@ val hawkAuthenticator = HawkAuthenticator("hawk-test", userCredentialsRetriever)
 
 startServer(interface = "localhost", port = 8080) {
   path("secured") {
-    authenticate(hawkAuthenticator) { user ⇒
+    authenticate(hawkAuthenticator) { user =>
       get {
         complete {
           s"Welcome to spray, ${user.name}!"
         }
       } ~
       post {
-        entity(as[String]) { body ⇒
+        entity(as[String]) { body =>
           complete {
             s"Welcome to spray, ${user.name}! Your post body was: $body"
           }
@@ -58,10 +58,10 @@ val responseFuture = pipeline {
 }
 
 responseFuture onComplete {
-  case Success(result) ⇒
+  case Success(result) =>
     println(result)
     shutdown()
-  case util.Failure(error) ⇒
+  case util.Failure(error) =>
     println(s"Cannot retrieve URL: $error")
     shutdown()
 }
@@ -81,10 +81,10 @@ val responseFuture = pipeline {
 }
 
 responseFuture onComplete {
-  case Success(result) ⇒
+  case Success(result) =>
     println(result)
     shutdown()
-  case util.Failure(error) ⇒
+  case util.Failure(error) =>
     println(s"Cannot retrieve URL: $error")
     shutdown()
 }
@@ -108,7 +108,7 @@ The client will connect to same URL, and you should get a `Welcome to spray, Bob
 
 ####Features to be implemented
 * ~~[Replay Protection](https://github.com/ryanbrozo/spray-hawk/issues/1)~~
-* [Response Payload Valdiation](https://github.com/ryanbrozo/spray-hawk/issues/3)
+* [Response Payload Validation](https://github.com/ryanbrozo/spray-hawk/issues/3)
 * [Single URI Authorization](https://github.com/ryanbrozo/spray-hawk/issues/4)
 
 

@@ -29,9 +29,41 @@ import spray.http.{HttpHeaders, HttpRequest}
 import spray.httpx.RequestBuilding
 
 /**
- * HawkRequestBuilding.scala
+ * A Spray RequestBuilding trait which is mixed in to a spray-client app to provide Hawk authentication support for requests.
  *
- * Created by rye on 12/4/14 2:01 PM.
+ * Example usage:
+ *
+ * {{{
+object HawkClient extends App with HawkRequestBuilding {
+
+  implicit val system = ActorSystem("hawk-client")
+
+  //Execution context for futures
+  import system.dispatcher
+
+  val hawkCreds = HawkCredentials("dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256)
+
+  val pipeline =
+    addHawkCredentials("hawk-client")(hawkCreds, withPayloadValidation = true) ~>
+    sendReceive ~>
+    unmarshal[String]
+
+  val responseFuture = pipeline {
+    Get("http://localhost:8080/secured")
+  }
+
+  responseFuture onComplete {
+    case Success(result) =>
+      println(result)
+      shutdown()
+    case util.Failure(error) =>
+      println(s"Cannot retrieve URL: \$error")
+      shutdown()
+  }
+}
+ * }}}
+ *
+ *
  */
 trait HawkRequestBuilding extends RequestBuilding with Util {
 
@@ -49,12 +81,12 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
     // Do we need to compute 'hash' param?
     val payloadHashOption = if (withPayloadValidation) {
       extractPayload(request) map {
-        case (payload, contentType) ⇒ HawkPayload(payload, contentType, credentials.algorithm.hashAlgo).hash
+        case (payload, contentType) => HawkPayload(payload, contentType, credentials.algorithm.hashAlgo).hash
       }
     } else None
 
     // First, let's extract URI-related hawk options
-    val hawkOptions = extractHawkOptions(request, { _ ⇒ None })
+    val hawkOptions = extractHawkOptions(request, { _ => None })
 
     // Then add our user-specified parameters
     val ts = timestampProvider().toString
@@ -64,7 +96,7 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
       HawkOptionKeys.Nonce -> Option(nonce),
       HawkOptionKeys.Ext -> Option(ext),
       HawkOptionKeys.Hash -> payloadHashOption
-    ).collect { case (k, Some(v)) ⇒ k -> v }
+    ).collect { case (k, Some(v)) => k -> v }
 
     // Compute our MAC
     val mac = Hawk(credentials, updatedOptions).mac
@@ -78,18 +110,42 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
       HawkAuthKeys.Mac -> Option(mac),
       HawkAuthKeys.Hash -> payloadHashOption
     )
-      .collect({ case (k, Some(v)) ⇒ k.toString + "=" + "\"" + v + "\"" })
+      .collect({ case (k, Some(v)) => k.toString + "=" + "\"" + v + "\"" })
       .mkString(",")
 
     HttpHeaders.RawHeader("Authorization", s"Hawk $authHeader")
   }
 
+  /**
+   * Signs the current request using the Hawk Authentication given a user's credentials. This allows for passing of an alternative
+   * timestamp and nonce generator
+   *
+   * @param timestampProvider Function that returns the current timestamp in seconds
+   * @param nonceProvider Function that produces random strings to be used as a cryptographic nonce
+   * @param ext App-specific data
+   * @param credentials Credentials used to sign the request
+   * @param withPayloadValidation If True, body of request is hashed amd considered when producing the Authorization header. The server will verify
+   *    if the payload is valid. Passing False to this parameter will disable payload validation
+   *
+   * @return Transformed request with necessary Authorization headers
+   */
   def addHawkCredentials(timestampProvider: TimeStampProvider, nonceProvider: NonceProvider, ext: ExtData)
                         (credentials: HawkCredentials,
                          withPayloadValidation: Boolean): RequestTransformer = { request =>
     request.mapHeaders(generateRawHeader(request,timestampProvider, nonceProvider, ext, credentials, withPayloadValidation) :: _)
   }
 
+  /**
+   * Signs the current request using the Hawk Authentication given a user's credentials. This uses the default timestamp
+   * and nonce generator of the library
+   *
+   * @param ext App-specific data
+   * @param credentials Credentials used to sign the request
+   * @param withPayloadValidation If True, body of request is hashed amd considered when producing the Authorization header. The server will verify
+   *    if the payload is valid. Passing False to this parameter will disable payload validation
+   *
+   * @return Transformed request with necessary Authorization headers
+   */
   def addHawkCredentials(ext: ExtData)(credentials: HawkCredentials, withPayloadValidation: Boolean = false): RequestTransformer =
     addHawkCredentials(Util.defaultTimestampProvider, Util.defaultNonceGenerator, ext)(credentials, withPayloadValidation)
 

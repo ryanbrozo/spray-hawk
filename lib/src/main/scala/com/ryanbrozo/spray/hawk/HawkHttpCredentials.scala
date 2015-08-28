@@ -36,12 +36,12 @@ import spray.util._
  *
  * Created by rye on 8/22/15.
  */
-case class HawkHttpCredentials(request: HttpRequest) {
+private[hawk] case class HawkHttpCredentials(request: HttpRequest) {
   import HawkAuthKeys._
 
   private val authHeader = request.headers.findByType[`Authorization`]
   private val credentials = authHeader.map {
-    case Authorization(creds) ⇒ creds
+    case Authorization(creds) => creds
   } flatMap {
     case creds: GenericHttpCredentials => Option(creds)
     case _ => None
@@ -60,8 +60,8 @@ case class HawkHttpCredentials(request: HttpRequest) {
     credentials.params.get(key.toString)
 
   private val xForwardedProtoHeader = request.headers.find {
-    case h: RawHeader if h.lowercaseName == "x-forwarded-proto" ⇒ true
-    case _ ⇒ false
+    case h: RawHeader if h.lowercaseName == "x-forwarded-proto" => true
+    case _ => false
   }
 
   private val rawUri = request.uri
@@ -81,26 +81,26 @@ case class HawkHttpCredentials(request: HttpRequest) {
     // Spray URI separates path from additional query parameters
     // so we should append a '?' if query parameters are present
     rawUri.path.toString() + (rawUri.query match {
-      case Query.Empty ⇒ ""
-      case x: Query ⇒ s"?${x.toString()}"
+      case Query.Empty => ""
+      case x: Query => s"?${x.toString()}"
     })
   }
 
   lazy val host: String = rawUri.authority.host.toString.toLowerCase
   lazy val port: Int = rawUri.authority.port match {
-    case i if i > 0 ⇒ i
-    case 0 ⇒
+    case i if i > 0 => i
+    case 0 =>
       // Need to determine which scheme to use. Check if we have X-Forwarded-Proto
       // header set (usually by reverse proxies). Use this instead of original
       // scheme when present
       val scheme = xForwardedProtoHeader match {
-        case Some(header) ⇒ header.value
-        case None         ⇒ rawUri.scheme
+        case Some(header) => header.value
+        case None         => rawUri.scheme
       }
       scheme match {
-        case "http"  ⇒ 80
-        case "https" ⇒ 443
-        case _       ⇒ 0
+        case "http"  => 80
+        case "https" => 443
+        case _       => 0
       }
   }
 
@@ -113,5 +113,5 @@ case class HawkHttpCredentials(request: HttpRequest) {
     HawkOptionKeys.Nonce -> Option(nonce.getOrElse("")),
     HawkOptionKeys.Ext -> Option(ext.getOrElse("")),
     HawkOptionKeys.Hash -> hash
-  ).collect { case (k, Some(v)) ⇒ k -> v }
+  ).collect { case (k, Some(v)) => k -> v }
 }

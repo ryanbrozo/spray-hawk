@@ -54,7 +54,15 @@ package object hawk {
     val hmacAlgo: MacAlgorithms.Value
     val hashAlgo: HashAlgorithms.Value
   }
+
+  /**
+   * Used to specify SHA1 as the algorithm to use for encryption of a user's credentials
+   */
   case object HawkSHA1 extends HawkHashAlgorithms { val hmacAlgo = MacAlgorithms.HmacSHA1; val hashAlgo = HashAlgorithms.SHA1 }
+
+  /**
+   * Used to specify SHA256 as the algorithm to use for encryption of a user's credentials
+   */
   case object HawkSHA256 extends HawkHashAlgorithms { val hmacAlgo = MacAlgorithms.HmacSHA256; val hashAlgo = HashAlgorithms.SHA256 }
 
   /**
@@ -99,27 +107,58 @@ package object hawk {
   /**
    * List of parameters used for calculating MAC of a request
    */
-  object HawkOptionKeys extends Enumeration {
+  private[hawk] object HawkOptionKeys extends Enumeration {
     val Method, Uri, Host, Port, Ts, Nonce, Hash, Ext, App, Dlg = Value
   }
 
   /**
    * List of parameters used in Authorization header supplied in a client request
    */
-  object HawkAuthKeys extends Enumeration {
+  private[hawk] object HawkAuthKeys extends Enumeration {
+    /**
+     * User identifier
+     */
     val Id = Value("id")
+
+    /**
+     * Current timestamp
+     */
     val Ts = Value("ts")
+
+    /**
+     * Cryptographic nonce
+     */
     val Nonce = Value("nonce")
+
+    /**
+     * Application-specific data
+     */
     val Ext = Value("ext")
+
+    /**
+     * Application Id
+     */
     val App = Value("app")
+
+    /**
+     * Delegated by application id (Oz), requires App. If payload validation is used, [[Hash]] should be supplied
+     */
     val Dlg = Value("dlg")
+
+    /**
+     * Computed MAC of the request
+     */
     val Mac = Value("mac")
+
+    /**
+     * Hash of payload as described [[https://github.com/hueniverse/hawk#payload-validation here]]
+     */
     val Hash = Value("hash")
   }
 
-  type HawkOptions = Map[HawkOptionKeys.Value, String]
+  private[hawk] type HawkOptions = Map[HawkOptionKeys.Value, String]
 
-  type HawkAuthParams = Map[HawkAuthKeys.Value, String]
+  private[hawk] type HawkAuthParams = Map[HawkAuthKeys.Value, String]
 
   /**
    * Represents a function that retrieves a user object of type U
@@ -127,7 +166,7 @@ package object hawk {
    *
    * @tparam U Type of user to be retrieved. Should implement HawkUser trait
    */
-  type UserRetriever[U <: HawkUser] = String ⇒ Future[Option[U]]
+  type UserRetriever[U <: HawkUser] = String => Future[Option[U]]
 
 
   /**

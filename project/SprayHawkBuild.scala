@@ -48,6 +48,7 @@ object BuildSettings {
       sprayTestKit,
       specs2
     ),
+    autoAPIMappings := true,
     scalacOptions in Test ++= Seq("-Yrangepos", "-deprecation")
   )
 

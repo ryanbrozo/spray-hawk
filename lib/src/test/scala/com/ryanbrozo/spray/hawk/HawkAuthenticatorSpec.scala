@@ -80,7 +80,7 @@ class HawkAuthenticatorSpec
    * authenticator always fails
    */
   val hawkDontAuth = HawkAuthenticator[User](realm,
-  { _: String ⇒
+  { _: String =>
     Future.successful(None)
   })
 
@@ -88,7 +88,7 @@ class HawkAuthenticatorSpec
    * A Hawk authenticator which always authenticates but does not depend on the current time
    */
   val hawkDoAuthTimeAgnostic = HawkAuthenticator[User](defaultTimeGenerator _)(realm,
-  { _ ⇒
+  { _ =>
     Future.successful(Some(hawkUser))
   })
 
@@ -96,7 +96,7 @@ class HawkAuthenticatorSpec
    * A Hawk authenticator which throws an exception
    */
   val hawkDoAuthWithException = HawkAuthenticator[User](defaultTimeGenerator _)(realm,
-  { _ ⇒
+  { _ =>
     throw new Exception("Cannot retrieve a user")
   })
 
@@ -105,7 +105,7 @@ class HawkAuthenticatorSpec
    */
   val hawkDoAuthTimeAgnosticValidatesNonce = HawkAuthenticator[User](
     defaultTimeGenerator _, Util.cachingNonceValidator _)(realm,
-  { _ ⇒
+  { _ =>
     Future.successful(Some(hawkUser))
   })
 
@@ -188,7 +188,7 @@ class HawkAuthenticatorSpec
   "the 'authenticate(HawkAuthenticator)' directive" should {
     "reject requests without Authorization header with an AuthenticationRequiredRejection" in {
       Get() ~> {
-        authenticate(hawkDontAuth) { user ⇒
+        authenticate(hawkDontAuth) { user =>
           complete(user.name)
         }
       } ~> check {
@@ -197,7 +197,7 @@ class HawkAuthenticatorSpec
     }
     "reject unauthenticated requests with Authorization header with an AuthorizationFailedRejection" in {
       Get("http://www.example.com:8000/abc") ~> Authorization(hawkCredentials_GET_withPort) ~> {
-        authenticate(hawkDontAuth) { user ⇒
+        authenticate(hawkDontAuth) { user =>
           complete(user.name)
         }
       } ~> check {
@@ -206,7 +206,7 @@ class HawkAuthenticatorSpec
     }
     "reject incorrect mac in Authorization header with an AuthorizationFailedRejection" in {
       Get("http://www.example.com:8000/abc") ~> Authorization(hawkCredentials_GET_withPort) ~> {
-        authenticate(hawkDoAuthTimeAgnostic) { user ⇒
+        authenticate(hawkDoAuthTimeAgnostic) { user =>
           complete(user.name)
         }
       } ~> check {
@@ -215,7 +215,7 @@ class HawkAuthenticatorSpec
     }
     "extract the object representing the user identity created by successful authentication" in {
       Get("http://example.com:8000/resource/1?b=1&a=2") ~> Authorization(hawkCredentials_GET_withPort) ~> {
-        authenticate(hawkDoAuthTimeAgnostic) { user ⇒
+        authenticate(hawkDoAuthTimeAgnostic) { user =>
           complete(user.name)
         }
       } ~> check {
@@ -227,7 +227,7 @@ class HawkAuthenticatorSpec
       Post("http://example.com:8000/resource/1?b=1&a=2", "Thank you for flying Hawk") ~>
         `Content-Type`(ContentType(spray.http.MediaTypes.`text/plain`)) ~>
         Authorization(hawkCredentials_POST_withPort) ~> {
-        authenticate(hawkDoAuthTimeAgnostic) { user ⇒
+        authenticate(hawkDoAuthTimeAgnostic) { user =>
           complete(user.name)
         }
       } ~> check {
@@ -238,7 +238,7 @@ class HawkAuthenticatorSpec
       Post("http://example.com:8000/resource/1?b=1&a=2", "Thank you for flying Hawkz") ~>
         `Content-Type`(ContentType(spray.http.MediaTypes.`text/plain`)) ~>
         Authorization(hawkCredentials_POST_withPortWithPayload) ~> {
-        authenticate(hawkDoAuthTimeAgnostic) { user ⇒
+        authenticate(hawkDoAuthTimeAgnostic) { user =>
           complete(user.name)
         }
       } ~> check {
@@ -247,7 +247,7 @@ class HawkAuthenticatorSpec
     }
     "reject requests with client timestamps less than the allowable server timeframe" in {
       Get("http://www.example.com:8000/abc") ~> Authorization(hawkCredentials_GET_withPort_timestamp_left_of_timeframe) ~> {
-        authenticate(hawkDoAuthTimeAgnostic) { user ⇒
+        authenticate(hawkDoAuthTimeAgnostic) { user =>
           complete(user.name)
         }
       } ~> check {
@@ -256,7 +256,7 @@ class HawkAuthenticatorSpec
     }
     "reject requests with client timestamps more than the allowable server timeframe" in {
       Get("http://www.example.com:8000/abc") ~> Authorization(hawkCredentials_GET_withPort_timestamp_right_of_timeframe) ~> {
-        authenticate(hawkDoAuthTimeAgnostic) { user ⇒
+        authenticate(hawkDoAuthTimeAgnostic) { user =>
           complete(user.name)
         }
       } ~> check {
@@ -267,7 +267,7 @@ class HawkAuthenticatorSpec
       Post("http://example.com:8000/resource/1?b=1&a=2", "Thank you for flying Hawk") ~>
         `Content-Type`(ContentType(spray.http.MediaTypes.`text/plain`)) ~>
         Authorization(hawkCredentials_POST_withPortWithPayload) ~> {
-        authenticate(hawkDoAuthTimeAgnostic) { user ⇒
+        authenticate(hawkDoAuthTimeAgnostic) { user =>
           complete(user.name)
         }
       } ~> check {
@@ -278,7 +278,7 @@ class HawkAuthenticatorSpec
       object TestException extends spray.util.SingletonException
       Get("http://example.com:8000/resource/1?b=1&a=2") ~> Authorization(hawkCredentials_GET_withPort) ~> {
         handleExceptions(ExceptionHandler.default) {
-          authenticate(hawkDoAuthTimeAgnostic) { _ ⇒ throw TestException}
+          authenticate(hawkDoAuthTimeAgnostic) { _ => throw TestException}
         }
       } ~> check {
         status === StatusCodes.InternalServerError
@@ -287,7 +287,7 @@ class HawkAuthenticatorSpec
     "properly handle X-Forwarded-Proto header in case it is set" in {
       Get("https://example.com/resource/1?b=1&a=2") ~> Authorization(hawkCredentials_GET_withoutPort) ~>
         RawHeader("X-Forwarded-Proto", "http") ~> {
-        authenticate(hawkDoAuthTimeAgnostic) { user ⇒
+        authenticate(hawkDoAuthTimeAgnostic) { user =>
           complete(user.name)
         }
       } ~> check {
@@ -296,7 +296,7 @@ class HawkAuthenticatorSpec
     }
     "reject requests when an exception is encountered while retrieving a user" in {
       Get("http://example.com:8000/resource/1?b=1&a=2") ~> Authorization(hawkCredentials_GET_withPort) ~> {
-        authenticate(hawkDoAuthWithException) { user ⇒
+        authenticate(hawkDoAuthWithException) { user =>
           complete(user.name)
         }
       } ~> check {
@@ -305,14 +305,14 @@ class HawkAuthenticatorSpec
     }
     "reject requests when nonce is non-unique" in {
       Get("http://example.com:8000/resource/1?b=1&a=2") ~> Authorization(hawkCredentials_GET_withPort) ~> {
-        authenticate(hawkDoAuthTimeAgnosticValidatesNonce) { user ⇒
+        authenticate(hawkDoAuthTimeAgnosticValidatesNonce) { user =>
           complete(user.name)
         }
       } ~> check {
         responseAs[String] === "Bob"
       }
       Get("http://example.com:8000/resource/1?b=1&a=2") ~> Authorization(hawkCredentials_GET_withPort) ~> {
-        authenticate(hawkDoAuthTimeAgnosticValidatesNonce) { user ⇒
+        authenticate(hawkDoAuthTimeAgnosticValidatesNonce) { user =>
           complete(user.name)
         }
       } ~> check {

@@ -39,9 +39,7 @@ import scala.language.postfixOps
 import scala.util.Random
 
 /**
-  * Util.scala
-  *
-  * Created by rye on 12/4/14 2:17 PM.
+  * Helper functions
   */
 
 object Util {
@@ -101,29 +99,37 @@ object Util {
    * @return Random string of length defined in the configuration file.
    */
   def defaultNonceGenerator(): Nonce = Random.alphanumeric.take(nonceLength).mkString
+
+  /**
+   * Default nonce validator. Doesn't really validate nonces and just returns True
+   *
+   * @param nonce Nonce to valiaate
+   * @param key Key identifier
+   * @param ts timestamp
+   * @return True everytime
+   */
+  def defaultNonceValidator(nonce: Nonce, key: Key, ts: TimeStamp): Boolean = true
 }
 
 private[hawk] trait Util extends StrictLogging {
-  import Util._
-
   /**
     * Represents a function that extracts a parameter
     * from a map
     */
-  type ParameterExtractor = HawkAuthKeys.Value ⇒ Option[String]
+  private[hawk] type ParameterExtractor = HawkAuthKeys.Value => Option[String]
 
   /**
-    * Produces an instance of [[com.ryanbrozo.spray.hawk.HawkOptions]] that will be used to verify the
+    * Produces an instance of HawkOptions that will be used to verify the
     * Authorization header
     *
-    * @param req Current [[spray.http.HttpRequest]]
+    * @param req Current spray HttpRequest
     * @param extractor Extractor function that extracts hawk parameters from the Authorization header
-    * @return Extracted options wrapped as an [[Option]]
+    * @return Extracted options wrapped as an Option
     */
-  def extractHawkOptions(req: HttpRequest, extractor: ParameterExtractor): HawkOptions = {
+  private[hawk] def extractHawkOptions(req: HttpRequest, extractor: ParameterExtractor): HawkOptions = {
     val xForwardedProtoHeader = req.headers.find {
-      case h: RawHeader if h.lowercaseName == "x-forwarded-proto" ⇒ true
-      case _ ⇒ false
+      case h: RawHeader if h.lowercaseName == "x-forwarded-proto" => true
+      case _ => false
     }
     val ts = extractor(HawkAuthKeys.Ts).getOrElse("")
     val ext = extractor(HawkAuthKeys.Ext).getOrElse("")
@@ -135,24 +141,24 @@ private[hawk] trait Util extends StrictLogging {
     // Spray URI separates path from additional query parameters
     // so we should append a '?' if query parameters are present
     val uri = rawUri.path.toString() + (rawUri.query match {
-      case Query.Empty ⇒ ""
-      case x: Query ⇒ s"?${x.toString()}"
+      case Query.Empty => ""
+      case x: Query => s"?${x.toString()}"
     })
     val host = rawUri.authority.host.toString.toLowerCase
     val port = rawUri.authority.port match {
-      case i if i > 0 ⇒ i
-      case 0 ⇒
+      case i if i > 0 => i
+      case 0 =>
         // Need to determine which scheme to use. Check if we have X-Forwarded-Proto
         // header set (usually by reverse proxies). Use this instead of original
         // scheme when present
         val scheme = xForwardedProtoHeader match {
-          case Some(header) ⇒ header.value
-          case None ⇒ rawUri.scheme
+          case Some(header) => header.value
+          case None => rawUri.scheme
         }
         scheme match {
-          case "http" ⇒ 80
-          case "https" ⇒ 443
-          case _ ⇒ 0
+          case "http" => 80
+          case "https" => 443
+          case _ => 0
         }
     }
     Map(
@@ -163,44 +169,23 @@ private[hawk] trait Util extends StrictLogging {
       HawkOptionKeys.Ts -> Option(ts),
       HawkOptionKeys.Nonce -> Option(nonce),
       HawkOptionKeys.Ext -> Option(ext),
-      HawkOptionKeys.Hash -> hashOption).collect { case (k, Some(v)) ⇒ k -> v }
+      HawkOptionKeys.Hash -> hashOption).collect { case (k, Some(v)) => k -> v }
   }
-
-  /**
-    * Same as [[HawkAuthenticator.extractHawkOptions()]] but wrapped as a [[Future]]. Used primarily
-    * by [[HawkAuthenticator.authenticate()]]
-    *
-    * @param req Current [[spray.http.HttpRequest]]
-    * @param extractor Extractor function that extracts hawk parameters from the Authorization header
-    * @return Extracted options wrapped as an [[Future]][ [[Option]] ]
-    */
-  def extractFutureHawkOptions(req: HttpRequest, extractor: ParameterExtractor): Future[Option[HawkOptions]] =
-    Future.successful(Option(extractHawkOptions(req, extractor)))
 
   /**
     * Extracts payload information that is essential for Hawk payload validation from a request
     *
-    * @param req [[HttpRequest]] instance, usually coming from the current Spray [[spray.routing.RequestContext]]
-    * @return Payload data represented as byte array and it's corresponding Content-Type, wrapped as an [[Option]]
+    * @param req Spray HttpRequest instance, usually coming from the current Spray RequestContext
+    * @return Payload data represented as byte array and it's corresponding Content-Type, wrapped as an Option
     */
-  def extractPayload(req: HttpRequest): Option[(Array[Byte], String)] = {
+  private[hawk] def extractPayload(req: HttpRequest): Option[(Array[Byte], String)] = {
     req.entity match {
-      case e: NonEmpty ⇒
+      case e: NonEmpty =>
         val data = e.data.toByteArray
         val contentType = e.contentType.mediaType.toString()
         Some((data, contentType))
-      case Empty ⇒ None
+      case Empty => None
     }
   }
-
-  /**
-   * Default nonce validator. Doesn't really validate nonces and just returns True
-   *
-   * @param nonce Nonce to valiaate
-   * @param key Key identifier
-   * @param ts timestamp
-   * @return True everytime
-   */
-  def defaultNonceValidator(nonce: Nonce, key: Key, ts: TimeStamp): Boolean = true
 
 }
