@@ -29,6 +29,12 @@ import javax.crypto.spec.SecretKeySpec
 
 import org.parboiled.common.Base64
 
+object Hawk {
+  val TYPE_HEADER = "header"
+  val TYPE_RESPONSE = "response"
+  val TYPE_BEWIT = "bewit"
+}
+
 /**
  * Calculates MAC given the options passed to it
  *
@@ -60,9 +66,9 @@ import org.parboiled.common.Base64
  *
  *                '''Hash''' - Hash of payload as described [[https://github.com/hueniverse/hawk#payload-validation here]]
  *
- *
+ * @param typeString Hawk header type string. Can be `"header"`, `"response"`, or `"bewit"`
  */
-private[hawk] case class Hawk(credentials: HawkUser, options: HawkOptions) {
+private[hawk] case class Hawk(credentials: HawkUser, options: HawkOptions, typeString: String) {
 
   /**
    * Normalized string that will be used for calculating the MAC
@@ -72,8 +78,8 @@ private[hawk] case class Hawk(credentials: HawkUser, options: HawkOptions) {
 
     val appDlg = for (app ← options.get(App); dlg ← options.get(Dlg)) yield s"$app\n$dlg\n"
 
-    s"""hawk.$HEADER_VERSION.header
-                              |${options.getOrElse(Ts, "")}
+    s"""hawk.$HEADER_VERSION.$typeString
+        |${options.getOrElse(Ts, "")}
         |${options.getOrElse(Nonce, "")}
         |${options.getOrElse(Method, "")}
         |${options.getOrElse(Uri, "")}

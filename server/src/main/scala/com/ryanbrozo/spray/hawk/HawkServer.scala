@@ -1,6 +1,7 @@
 package com.ryanbrozo.spray.hawk
 
 import akka.actor.ActorSystem
+import spray.http.HttpHeaders.RawHeader
 import spray.routing.SimpleRoutingApp
 
 import scala.concurrent.Future
@@ -32,18 +33,22 @@ object HawkServer extends App with SimpleRoutingApp {
   val hawkAuthenticator = HawkAuthenticator("hawk-test", userCredentialsRetriever)
 
   startServer(interface = "localhost", port = 8080) {
-    path("secured") {
-      authenticate(hawkAuthenticator) { user =>
-        get {
-          complete {
-            s"Welcome to spray, ${user.name}!"
-          }
-        } ~
-        post {
-          entity(as[String]) { body =>
-            complete {
-              s"Welcome to spray, ${user.name}! Your post body was: $body"
-            }
+    host("test") {
+      respondWithHeader(RawHeader("test", "test")) {
+        path("secured") {
+          authenticate(hawkAuthenticator) { user =>
+            get {
+              complete {
+                s"Welcome to spray, ${user.name}!"
+              }
+            } ~
+              post {
+                entity(as[String]) { body =>
+                  complete {
+                    s"Welcome to spray, ${user.name}! Your post body was: $body"
+                  }
+                }
+              }
           }
         }
       }

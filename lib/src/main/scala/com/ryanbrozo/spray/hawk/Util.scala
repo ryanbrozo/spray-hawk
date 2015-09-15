@@ -24,18 +24,19 @@
 
 package com.ryanbrozo.spray.hawk
 
+import com.ryanbrozo.spray.hawk.Util.PartialHawkOptions
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.StrictLogging
 import spray.caching.ExpiringLruCache
 import spray.http.HttpEntity.{Empty, NonEmpty}
 import spray.http.HttpHeaders.RawHeader
-import spray.http.HttpRequest
+import spray.http._
 import spray.http.Uri.Query
 
 import scala.compat.Platform
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.language.postfixOps
+import scala.language.{implicitConversions, postfixOps}
 import scala.util.Random
 
 /**
@@ -43,6 +44,8 @@ import scala.util.Random
   */
 
 object Util {
+
+  private[hawk] case class PartialHawkOptions(method: HttpMethod, uri: Uri)
 
   private val MINIMUM_NONCE_LENGTH = 6
 
@@ -62,6 +65,10 @@ object Util {
   private val _timeToLiveInSeconds= _timeToIdleInSeconds + (1 second)
 
   private val _cache = new ExpiringLruCache[TimeStamp](_maxCacheCapacity, _initialCacheCapacity, _timeToLiveInSeconds, _timeToIdleInSeconds)
+
+  private[hawk] implicit def toPartialHawkOptions(req: HttpRequest): PartialHawkOptions = {
+    PartialHawkOptions(req.method, req.uri)
+  }
 
   /**
    * Default nonce validator. Uses an in-memory cache to validate nonces
@@ -112,22 +119,38 @@ object Util {
 }
 
 private[hawk] trait Util extends StrictLogging {
+
   /**
     * Represents a function that extracts a parameter
     * from a map
     */
   private[hawk] type ParameterExtractor = HawkAuthKeys.Value => Option[String]
 
+
+  /**
+   * Produces an instance of HawkOptions that will be used to verify the
+   * Authorization header
+   *
+   * @param req Spray HttpRequest instance
+   * @param extractor Extractor function that extracts hawk parameters from the Authorization header
+   * @return Extracted options wrapped as an Option
+   */
+  private[hawk] def extractHawkOptions(req: HttpRequest, extractor: ParameterExtractor): HawkOptions = {
+    extractHawkOptions(req, req, extractor)
+  }
+
   /**
     * Produces an instance of HawkOptions that will be used to verify the
     * Authorization header
     *
-    * @param req Current spray HttpRequest
+    * @param partialOps Partial hawk options which is extracted from a Spray HttpRequest instance, if mesg is
+    *                   particularly an HttpResponse instance
+    * @param mesg Spray HttpMessage instance to extract hawk parameters from
     * @param extractor Extractor function that extracts hawk parameters from the Authorization header
     * @return Extracted options wrapped as an Option
     */
-  private[hawk] def extractHawkOptions(req: HttpRequest, extractor: ParameterExtractor): HawkOptions = {
-    val xForwardedProtoHeader = req.headers.find {
+  private[hawk] def extractHawkOptions(partialOps: PartialHawkOptions, mesg: HttpMessage, extractor: ParameterExtractor): HawkOptions = {
+    val xForwardedProtoHeader = mesg.headers.find {
       case h: RawHeader if h.lowercaseName == "x-forwarded-proto" => true
       case _ => false
     }
@@ -135,8 +158,8 @@ private[hawk] trait Util extends StrictLogging {
     val ext = extractor(HawkAuthKeys.Ext).getOrElse("")
     val nonce = extractor(HawkAuthKeys.Nonce).getOrElse("")
     val hashOption = extractor(HawkAuthKeys.Hash)
-    val method = req.method.toString()
-    val rawUri = req.uri
+    val method = partialOps.method.toString()
+    val rawUri = partialOps.uri
 
     // Spray URI separates path from additional query parameters
     // so we should append a '?' if query parameters are present
@@ -173,12 +196,12 @@ private[hawk] trait Util extends StrictLogging {
   }
 
   /**
-    * Extracts payload information that is essential for Hawk payload validation from a request
+    * Extracts payload information that is essential for Hawk payload validation from a message
     *
-    * @param req Spray HttpRequest instance, usually coming from the current Spray RequestContext
+    * @param req Spray HttpMessage instance, usually coming from the current Spray RequestContext
     * @return Payload data represented as byte array and it's corresponding Content-Type, wrapped as an Option
     */
-  private[hawk] def extractPayload(req: HttpRequest): Option[(Array[Byte], String)] = {
+  private[hawk] def extractPayload(req: HttpMessage): Option[(Array[Byte], String)] = {
     req.entity match {
       case e: NonEmpty =>
         val data = e.data.toByteArray

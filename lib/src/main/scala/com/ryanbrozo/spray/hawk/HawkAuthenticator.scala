@@ -129,7 +129,7 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider, non
 
     def checkMac(implicit hawkUser: U): \/[HawkError, Option[U]] = {
       (for {
-        mac <- hawkCredentials.mac if mac == Hawk(hawkUser, hawkCredentials.options).mac
+        mac <- hawkCredentials.mac if mac == Hawk(hawkUser, hawkCredentials.options, Hawk.TYPE_HEADER).mac
       } yield Option(hawkUser).right[HawkError]) | InvalidMacError.left[Option[U]]
     }
 

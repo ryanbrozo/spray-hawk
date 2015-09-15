@@ -39,7 +39,8 @@ class HawkAuthenticatorSpec
   extends Specification
   with Specs2RouteTest
   with Directives
-  with HttpService {
+  with HttpService
+  with HawkRouteDirectives {
 
   implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(60, SECONDS))
 
@@ -206,6 +207,7 @@ class HawkAuthenticatorSpec
     }
     "reject incorrect mac in Authorization header with an AuthorizationFailedRejection" in {
       Get("http://www.example.com:8000/abc") ~> Authorization(hawkCredentials_GET_withPort) ~> {
+
         authenticate(hawkDoAuthTimeAgnostic) { user =>
           complete(user.name)
         }
@@ -272,6 +274,24 @@ class HawkAuthenticatorSpec
         }
       } ~> check {
         responseAs[String] === "Bob"
+        header("Server-Authorization") === None
+      }
+    }
+    "produce a valid Server-Authorization header" in {
+      Post("http://example.com:8000/resource/1?b=1&a=2", "Thank you for flying Hawk") ~>
+        `Content-Type`(ContentType(spray.http.MediaTypes.`text/plain`)) ~>
+        Authorization(hawkCredentials_POST_withPortWithPayload) ~> {
+        withHawkServerAuthHeader({ _: String =>
+          Future.successful(Some(hawkUser))
+        }) {
+          authenticate(hawkDoAuthTimeAgnostic) { user =>
+            complete(user.name)
+          }
+        }
+      } ~> check {
+        responseAs[String] === "Bob"
+        header("Server-Authorization") ===
+          RawHeader("Server-Authorization", """Hawk mac="MZ9KSUZgulMSfu1EGCIULjCbqor09PfF83fXKDLE+bI=", hash="adQztfXWuBrabtDCkK9innCGU4dCILx6ecq+b6JjUbc=", ext="server"""")
       }
     }
     "properly handle exceptions thrown in its inner route" in {

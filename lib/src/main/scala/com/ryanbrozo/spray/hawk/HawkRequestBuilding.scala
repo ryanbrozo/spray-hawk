@@ -24,9 +24,11 @@
 
 package com.ryanbrozo.spray.hawk
 
+import com.ryanbrozo.spray.hawk.Util._
 import spray.http.HttpHeaders.RawHeader
 import spray.http.{HttpHeaders, HttpRequest}
 import spray.httpx.RequestBuilding
+
 
 /**
  * A Spray RequestBuilding trait which is mixed in to a spray-client app to provide Hawk authentication support for requests.
@@ -86,7 +88,7 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
     } else None
 
     // First, let's extract URI-related hawk options
-    val hawkOptions = extractHawkOptions(request, { _ => None })
+    val hawkOptions = extractHawkOptions(request, request,  { _ => None })
 
     // Then add our user-specified parameters
     val ts = timestampProvider().toString
@@ -99,7 +101,7 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
     ).collect { case (k, Some(v)) => k -> v }
 
     // Compute our MAC
-    val mac = Hawk(credentials, updatedOptions).mac
+    val mac = Hawk(credentials, updatedOptions, Hawk.TYPE_HEADER).mac
 
     // Then create our Hawk Authorization header
     val authHeader = Map(

@@ -46,7 +46,7 @@ class HawkSpec extends Specification {
         Ts -> "1357747017",
         Nonce -> "k3k4j5"
       )
-      Hawk(credentials, options).normalized must beEqualTo("hawk.1.header\n1357747017\nk3k4j5\nGET\n/resource/something\nexample.com\n8080\n\n\n")
+      Hawk(credentials, options, Hawk.TYPE_HEADER).normalized must beEqualTo("hawk.1.header\n1357747017\nk3k4j5\nGET\n/resource/something\nexample.com\n8080\n\n\n")
     }
 
     "return a valid normalized string (ext)" in {
@@ -59,7 +59,7 @@ class HawkSpec extends Specification {
         Nonce -> "k3k4j5",
         Ext -> "this is some app data"
       )
-      Hawk(credentials, options).normalized must beEqualTo("hawk.1.header\n1357747017\nk3k4j5\nGET\n/resource/something\nexample.com\n8080\n\nthis is some app data\n")
+      Hawk(credentials, options, Hawk.TYPE_HEADER).normalized must beEqualTo("hawk.1.header\n1357747017\nk3k4j5\nGET\n/resource/something\nexample.com\n8080\n\nthis is some app data\n")
     }
 
     "return a valid normalized string (payload + ext)" in {
@@ -74,7 +74,7 @@ class HawkSpec extends Specification {
         Ext -> "this is some app data"
       )
 
-      Hawk(credentials, options).normalized must beEqualTo("hawk.1.header\n1357747017\nk3k4j5\nGET\n/resource/something\nexample.com\n8080\nYi9LfIIFRtBEPt74PVmbTF/xVAwPn7ub15ePICfgnuY=\nthis is some app data\n")
+      Hawk(credentials, options, Hawk.TYPE_HEADER).normalized must beEqualTo("hawk.1.header\n1357747017\nk3k4j5\nGET\n/resource/something\nexample.com\n8080\nYi9LfIIFRtBEPt74PVmbTF/xVAwPn7ub15ePICfgnuY=\nthis is some app data\n")
     }
 
     "produce the correct MAC in given example from Hawk readme" in {
@@ -87,7 +87,7 @@ class HawkSpec extends Specification {
         Nonce -> "j4h3g2",
         Ext -> "some-app-ext-data"
       )
-      Hawk(credentials, options).mac must beEqualTo("6R4rV5iE+NPoym+WwjeHzjAGXUtLNIxmo1vpMofpLAE=")
+      Hawk(credentials, options, Hawk.TYPE_HEADER).mac must beEqualTo("6R4rV5iE+NPoym+WwjeHzjAGXUtLNIxmo1vpMofpLAE=")
     }
 
     "produce the correct MAC in given example with payload validation from Hawk readme" in {
@@ -101,7 +101,7 @@ class HawkSpec extends Specification {
         Nonce -> "j4h3g2",
         Ext -> "some-app-ext-data"
       )
-      Hawk(credentials, options).mac must beEqualTo("aSe1DERmZuRl3pI36/9BdZmnErTw3sNzOOAUlfeKjVw=")
+      Hawk(credentials, options, Hawk.TYPE_HEADER).mac must beEqualTo("aSe1DERmZuRl3pI36/9BdZmnErTw3sNzOOAUlfeKjVw=")
     }
   }
 }
