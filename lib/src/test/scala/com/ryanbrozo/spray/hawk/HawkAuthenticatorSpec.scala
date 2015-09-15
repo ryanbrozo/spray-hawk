@@ -75,31 +75,37 @@ class HawkAuthenticatorSpec
    * Test Realm 
    */
   val realm = "testRealm"
+
+  /**
+   * A UserRetriever that always does not authenticate
+   */
+  val userRetrieverDontAuth: UserRetriever[User] = { _ => Future.successful(None) }
+
+  /**
+   * A UserRetriever that always authenticates
+   */
+  val userRetrieverDoAuth: UserRetriever[User] = { _ => Future.successful(Some(hawkUser)) }
+
+  /**
+   * A UserRetriever that always throws an exception
+   */
+  val userRetrieverThrowException: UserRetriever[User] = { _ => throw new Exception("Cannot retrieve a user") }
   
   /**
    * A Hawk authenticator which always does not authenticates. Timestamp generator is not relevant since this 
    * authenticator always fails
    */
-  val hawkDontAuth = HawkAuthenticator[User](realm,
-  { _: String =>
-    Future.successful(None)
-  })
+  val hawkDontAuth = HawkAuthenticator[User](realm, userRetrieverDontAuth)
 
   /**
    * A Hawk authenticator which always authenticates but does not depend on the current time
    */
-  val hawkDoAuthTimeAgnostic = HawkAuthenticator[User](defaultTimeGenerator _)(realm,
-  { _ =>
-    Future.successful(Some(hawkUser))
-  })
+  val hawkDoAuthTimeAgnostic = HawkAuthenticator[User](defaultTimeGenerator _)(realm, userRetrieverDoAuth)
 
   /**
    * A Hawk authenticator which throws an exception
    */
-  val hawkDoAuthWithException = HawkAuthenticator[User](defaultTimeGenerator _)(realm,
-  { _ =>
-    throw new Exception("Cannot retrieve a user")
-  })
+  val hawkDoAuthWithException = HawkAuthenticator[User](defaultTimeGenerator _)(realm, userRetrieverThrowException)
 
   /**
    * A Hawk authenticator which always authenticates but checks for validity of nonces
@@ -197,17 +203,15 @@ class HawkAuthenticatorSpec
       }
     }
     "reject unauthenticated requests with Authorization header with an AuthorizationFailedRejection" in {
-      Get("http://www.example.com:8000/abc") ~> Authorization(hawkCredentials_GET_withPort) ~> {
+      Get("http://www.example.com:8000/abc") ~> Authorization(hawkCredentials_GET_withPort) ~>
         authenticate(hawkDontAuth) { user =>
           complete(user.name)
-        }
-      } ~> check {
+        } ~> check {
         rejection === AuthenticationFailedRejection(CredentialsRejected, challengeHeaders)
       }
     }
     "reject incorrect mac in Authorization header with an AuthorizationFailedRejection" in {
       Get("http://www.example.com:8000/abc") ~> Authorization(hawkCredentials_GET_withPort) ~> {
-
         authenticate(hawkDoAuthTimeAgnostic) { user =>
           complete(user.name)
         }
@@ -281,9 +285,7 @@ class HawkAuthenticatorSpec
       Post("http://example.com:8000/resource/1?b=1&a=2", "Thank you for flying Hawk") ~>
         `Content-Type`(ContentType(spray.http.MediaTypes.`text/plain`)) ~>
         Authorization(hawkCredentials_POST_withPortWithPayload) ~> {
-        withHawkServerAuthHeader({ _: String =>
-          Future.successful(Some(hawkUser))
-        }) {
+        withHawkServerAuthHeader(userRetrieverDoAuth) {
           authenticate(hawkDoAuthTimeAgnostic) { user =>
             complete(user.name)
           }
@@ -294,6 +296,7 @@ class HawkAuthenticatorSpec
           RawHeader("Server-Authorization", """Hawk mac="MZ9KSUZgulMSfu1EGCIULjCbqor09PfF83fXKDLE+bI=", hash="adQztfXWuBrabtDCkK9innCGU4dCILx6ecq+b6JjUbc=", ext="server"""")
       }
     }
+
     "properly handle exceptions thrown in its inner route" in {
       object TestException extends spray.util.SingletonException
       Get("http://example.com:8000/resource/1?b=1&a=2") ~> Authorization(hawkCredentials_GET_withPort) ~> {
