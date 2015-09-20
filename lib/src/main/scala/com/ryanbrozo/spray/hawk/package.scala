@@ -111,54 +111,9 @@ package object hawk {
     val Method, Uri, Host, Port, Ts, Nonce, Hash, Ext, App, Dlg = Value
   }
 
-  /**
-   * List of parameters used in Authorization header supplied in a client request
-   */
-  private[hawk] object HawkAuthKeys extends Enumeration {
-    /**
-     * User identifier
-     */
-    val Id = Value("id")
-
-    /**
-     * Current timestamp
-     */
-    val Ts = Value("ts")
-
-    /**
-     * Cryptographic nonce
-     */
-    val Nonce = Value("nonce")
-
-    /**
-     * Application-specific data
-     */
-    val Ext = Value("ext")
-
-    /**
-     * Application Id
-     */
-    val App = Value("app")
-
-    /**
-     * Delegated by application id (Oz), requires App. If payload validation is used, [[Hash]] should be supplied
-     */
-    val Dlg = Value("dlg")
-
-    /**
-     * Computed MAC of the request
-     */
-    val Mac = Value("mac")
-
-    /**
-     * Hash of payload as described [[https://github.com/hueniverse/hawk#payload-validation here]]
-     */
-    val Hash = Value("hash")
-  }
-
   private[hawk] type HawkOptions = Map[HawkOptionKeys.Value, String]
 
-  private[hawk] type HawkAuthParams = Map[HawkAuthKeys.Value, String]
+  private[hawk] type HawkAuthParams = Map[AuthHeaderKeys.Value, String]
 
   /**
    * Represents a function that retrieves a user object of type U

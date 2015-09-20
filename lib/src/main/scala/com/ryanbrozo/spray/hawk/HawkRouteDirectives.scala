@@ -79,12 +79,12 @@ object HawkRouteDirectivesMagnet
 
     // Then create our Hawk Authorization header
     val authHeader = Map(
-      HawkAuthKeys.Id -> Option(id),
-      HawkAuthKeys.Ts -> Option(ts),
-      HawkAuthKeys.Nonce -> Option(nonce),
-      HawkAuthKeys.Ext -> Option(ext),
-      HawkAuthKeys.Mac -> Option(mac),
-      HawkAuthKeys.Hash -> payloadHashOption
+      AuthHeaderKeys.Id -> Option(id),
+      AuthHeaderKeys.Ts -> Option(ts),
+      AuthHeaderKeys.Nonce -> Option(nonce),
+      AuthHeaderKeys.Ext -> Option(ext),
+      AuthHeaderKeys.Mac -> Option(mac),
+      AuthHeaderKeys.Hash -> payloadHashOption
     )
       .collect({ case (k, Some(v)) => k.toString + "=" + "\"" + v + "\"" })
       .mkString(",")
@@ -97,16 +97,16 @@ object HawkRouteDirectivesMagnet
 
     override def apply(): Out = mapRequestContext { ctx =>
       ctx.withHttpResponseMapped { resp =>
-        val hawkHttpCredentials = HawkHttpCredentials(ctx.request)
+        val hawkRequest = HawkRequest(ctx.request)
         val userTry = Try {
           // Assume the supplied userRetriever function can throw an exception
-          userRetriever(hawkHttpCredentials.id)
+          userRetriever(hawkRequest.authHeaderAttributes.id)
         }
         userTry match {
           case scala.util.Success(userFuture) =>
             val f = userFuture map {
               case Some(user) =>
-                val serverAuthHeader = generateServerAuthHeader(ctx.request, resp, hawkHttpCredentials.id, Util.defaultTimestampProvider,
+                val serverAuthHeader = generateServerAuthHeader(ctx.request, resp, hawkRequest.authHeaderAttributes.id, Util.defaultTimestampProvider,
                   Util.defaultNonceGenerator, "server", user)
                 resp.mapHeaders(serverAuthHeader :: _)
               case None => resp

@@ -105,12 +105,12 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
 
     // Then create our Hawk Authorization header
     val authHeader = Map(
-      HawkAuthKeys.Id -> Option(credentials.id),
-      HawkAuthKeys.Ts -> Option(ts),
-      HawkAuthKeys.Nonce -> Option(nonce),
-      HawkAuthKeys.Ext -> Option(ext),
-      HawkAuthKeys.Mac -> Option(mac),
-      HawkAuthKeys.Hash -> payloadHashOption
+      AuthHeaderKeys.Id -> Option(credentials.id),
+      AuthHeaderKeys.Ts -> Option(ts),
+      AuthHeaderKeys.Nonce -> Option(nonce),
+      AuthHeaderKeys.Ext -> Option(ext),
+      AuthHeaderKeys.Mac -> Option(mac),
+      AuthHeaderKeys.Hash -> payloadHashOption
     )
       .collect({ case (k, Some(v)) => k.toString + "=" + "\"" + v + "\"" })
       .mkString(",")

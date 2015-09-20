@@ -38,7 +38,7 @@ import scala.util.Try
 import scalaz.Scalaz._
 import scalaz._
 
-object HawkAuthenticator extends Util {
+object HawkAuthenticator {
 
   abstract sealed class HawkError() {
     val message: String
@@ -125,21 +125,21 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider, non
 
   val SCHEME = "Hawk"
 
-  private def validateCredentials(hawkUserOption: Option[U], hawkCredentials: HawkHttpCredentials): \/[HawkError, Option[U]] = {
+  private def validateCredentials(hawkUserOption: Option[U], hawkRequest: HawkRequest): \/[HawkError, Option[U]] = {
 
     def checkMac(implicit hawkUser: U): \/[HawkError, Option[U]] = {
       (for {
-        mac <- hawkCredentials.mac if mac == Hawk(hawkUser, hawkCredentials.options, Hawk.TYPE_HEADER).mac
+        mac <- hawkRequest.authHeaderAttributes.mac if mac == Hawk(hawkUser, hawkRequest.providedOptions, Hawk.TYPE_HEADER).mac
       } yield Option(hawkUser).right[HawkError]) | InvalidMacError.left[Option[U]]
     }
 
     def checkPayload(implicit hawkUser: U): \/[HawkError, Option[U]] = {
-      hawkCredentials.hash match {
+      hawkRequest.authHeaderAttributes.hash match {
         case Some(hash) if _payloadValidationEnabled =>
           // According to Hawk specs, payload validation should should only
           // happen if MAC is validated.
           (for {
-            (payload, contentType) ← extractPayload(hawkCredentials.request)
+            (payload, contentType) ← hawkRequest.payload
             hawkPayload ← Option(HawkPayload(payload, contentType, hawkUser.algorithm.hashAlgo))
             if hawkPayload.hash == hash
           } yield Option(hawkUser).right[HawkError]) | InvalidPayloadHashError.left[Option[U]]
@@ -151,15 +151,15 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider, non
     }
 
     def checkNonce(implicit hawkUser: U): \/[HawkError, Option[U]] = {
-      hawkCredentials.nonce match {
-        case Some(n) if nonceValidator(n, hawkUser.key, hawkCredentials.ts) => Option(hawkUser).right[HawkError]
+      hawkRequest.authHeaderAttributes.nonce match {
+        case Some(n) if nonceValidator(n, hawkUser.key, hawkRequest.authHeaderAttributes.ts) => Option(hawkUser).right[HawkError]
         case _ => InvalidNonceError.left[Option[U]]
       }
     }
 
     def checkTimestamp(implicit hawkUser: U): \/[HawkError, Option[U]] = {
       if (_timeSkewValidationEnabled) {
-        val timestamp = hawkCredentials.ts
+        val timestamp = hawkRequest.authHeaderAttributes.ts
         val currentTimestamp = timestampProvider()
         val lowerBound = currentTimestamp - _timeSkewInSeconds
         val upperBound = currentTimestamp + _timeSkewInSeconds
@@ -179,7 +179,7 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider, non
         tsOk <- checkTimestamp
       } yield tsOk
     } getOrElse InvalidUserError.left[Option[U]]
-  }  
+  }
 
   override def getChallengeHeaders(httpRequest: HttpRequest): List[HttpHeader] = {
     // Unfortunately, due to the design of spray.io, there is a need to
@@ -187,14 +187,14 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider, non
     // This can be costly, since we need to call the supplied userRetriever function again.
     // See https://github.com/spray/spray/issues/938 for more details
 
-    val hawkHttpCredentials = HawkHttpCredentials(httpRequest)
+    val hawkRequest = HawkRequest(httpRequest)
     val userTry = Try {
       // Assume the supplied userRetriever function can throw an exception
-      userRetriever(hawkHttpCredentials.id)
+      userRetriever(hawkRequest.authHeaderAttributes.id)
     }
     userTry match {
       case scala.util.Success(userFuture) =>
-        val f = userFuture map { validateCredentials(_, hawkHttpCredentials) } map {
+        val f = userFuture map { validateCredentials(_, hawkRequest) } map {
           case -\/(err:StaleTimestampError) =>
             val currentTimestamp = timestampProvider()
             val params = Map(
@@ -214,20 +214,21 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider, non
   }
 
   override def authenticate(credentials: Option[HttpCredentials], ctx: RequestContext): Future[Option[U]] = {
-    val hawkHttpCredentials = HawkHttpCredentials(ctx.request)
+    val hawkRequest = HawkRequest(ctx.request)
     val userTry = Try {
       // Assume the supplied userRetriever function can throw an exception
-      userRetriever(hawkHttpCredentials.id)
+      userRetriever(hawkRequest.authHeaderAttributes.id)
     }
     userTry match {
       case scala.util.Success(userFuture) =>
-        userFuture map { validateCredentials(_, hawkHttpCredentials) } map {
+        userFuture map { validateCredentials(_, hawkRequest) } map {
           case \/-(user) => user
           case _ => None
         }
       case scala.util.Failure(e) =>
         logger.warn(s"An error occurred while retrieving a hawk user: ${e.getMessage}")
         Future.successful(None)
+
     }
   }
 }

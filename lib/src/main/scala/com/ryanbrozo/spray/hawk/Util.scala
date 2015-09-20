@@ -124,7 +124,7 @@ private[hawk] trait Util extends StrictLogging {
     * Represents a function that extracts a parameter
     * from a map
     */
-  private[hawk] type ParameterExtractor = HawkAuthKeys.Value => Option[String]
+  private[hawk] type ParameterExtractor = AuthHeaderKeys.Value => Option[String]
 
 
   /**
@@ -154,10 +154,10 @@ private[hawk] trait Util extends StrictLogging {
       case h: RawHeader if h.lowercaseName == "x-forwarded-proto" => true
       case _ => false
     }
-    val ts = extractor(HawkAuthKeys.Ts).getOrElse("")
-    val ext = extractor(HawkAuthKeys.Ext).getOrElse("")
-    val nonce = extractor(HawkAuthKeys.Nonce).getOrElse("")
-    val hashOption = extractor(HawkAuthKeys.Hash)
+    val ts = extractor(AuthHeaderKeys.Ts).getOrElse("")
+    val ext = extractor(AuthHeaderKeys.Ext).getOrElse("")
+    val nonce = extractor(AuthHeaderKeys.Nonce).getOrElse("")
+    val hashOption = extractor(AuthHeaderKeys.Hash)
     val method = partialOps.method.toString()
     val rawUri = partialOps.uri
 
