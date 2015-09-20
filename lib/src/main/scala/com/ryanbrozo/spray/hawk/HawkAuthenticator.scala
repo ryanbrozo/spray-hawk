@@ -55,6 +55,7 @@ object HawkAuthenticator {
   private[hawk] val _payloadValidationEnabled = _conf.getBoolean("spray.hawk.payloadValidation")
   private[hawk] val _timeSkewValidationEnabled = _conf.getBoolean("spray.hawk.timeSkewValidation")
   private[hawk] val _timeSkewInSeconds = _conf.getLong("spray.hawk.timeSkewInSeconds")
+  private[hawk] val _maxUserRetrieverTimeInSeconds = _conf.getLong("spray.hawk.maxUserRetrieverTimeInSeconds") seconds
   
   def apply[U <: HawkUser](realm: String, userRetriever: UserRetriever[U])(implicit executionContext: ExecutionContext) =
     new HawkAuthenticator(Util.defaultTimestampProvider, Util.defaultNonceValidator)(realm, userRetriever)
@@ -206,7 +207,7 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider, non
           case _ =>
             `WWW-Authenticate`(HttpChallenge(SCHEME, realm)) :: Nil
         }
-        Await.result(f, 60 milliseconds)
+        Await.result(f, _maxUserRetrieverTimeInSeconds)
       case scala.util.Failure(e) =>
         logger.warn(s"An error occurred while retrieving a hawk user: ${e.getMessage}")
         `WWW-Authenticate`(HttpChallenge(SCHEME, realm)) :: Nil

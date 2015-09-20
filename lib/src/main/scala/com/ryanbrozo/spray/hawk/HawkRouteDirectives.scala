@@ -27,6 +27,7 @@
 package com.ryanbrozo.spray.hawk
 
 import com.ryanbrozo.spray.hawk.Util._
+import com.typesafe.config.ConfigFactory
 import spray.http.HttpHeaders.RawHeader
 import spray.http.{HttpHeaders, HttpRequest, HttpResponse}
 import spray.routing.Directive0
@@ -52,6 +53,11 @@ sealed trait HawkRouteDirectivesMagnet {
 object HawkRouteDirectivesMagnet
   extends BasicDirectives
   with Util {
+
+  private val _conf = ConfigFactory.load()
+
+  private[hawk] val _serverAuthorizationExt = _conf.getString("spray.hawk.serverAuthorizationExt")
+  private[hawk] val _maxUserRetrieverTimeInSeconds = _conf.getLong("spray.hawk.maxUserRetrieverTimeInSeconds") seconds
 
   private def generateServerAuthHeader(request: HttpRequest, response: HttpResponse, id: String, timestampProvider: TimeStampProvider,
                                        nonceProvider: NonceProvider, ext: ExtData, credentials: HawkUser): RawHeader = {
@@ -97,11 +103,11 @@ object HawkRouteDirectivesMagnet
             val f = userFuture map {
               case Some(user) =>
                 val serverAuthHeader = generateServerAuthHeader(ctx.request, resp, hawkRequest.authHeaderAttributes.id, Util.defaultTimestampProvider,
-                  Util.defaultNonceGenerator, "server", user)
+                  Util.defaultNonceGenerator, _serverAuthorizationExt, user)
                 resp.mapHeaders(serverAuthHeader :: _)
               case None => resp
             }
-            Await.result(f, 60 seconds)
+            Await.result(f, _maxUserRetrieverTimeInSeconds)
           case scala.util.Failure(e) =>
             resp
         }

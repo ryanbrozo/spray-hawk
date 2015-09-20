@@ -293,7 +293,7 @@ class HawkAuthenticatorSpec
       } ~> check {
         responseAs[String] === "Bob"
         header("Server-Authorization") ===
-          Some(RawHeader("Server-Authorization", """Hawk mac="l3xeGtXs7F8YtVVLJsdyPRFQB2GsaBSB6Z3oy10EWFs=", hash="adQztfXWuBrabtDCkK9innCGU4dCILx6ecq+b6JjUbc=", ext="server""""))
+          Some(RawHeader("Server-Authorization", """Hawk mac="I9Oj+qFu18fxyemIgw3RFV2CYKhRtkvskVxWsFx+fYU=", hash="adQztfXWuBrabtDCkK9innCGU4dCILx6ecq+b6JjUbc=", ext="spray-hawk""""))
       }
     }
 
