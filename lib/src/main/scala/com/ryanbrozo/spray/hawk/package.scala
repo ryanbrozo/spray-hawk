@@ -29,6 +29,11 @@ import scala.concurrent.Future
 package object hawk {
 
   /**
+   * Authentication Scheme name
+   */
+  val HEADER_NAME = "Hawk"
+
+  /**
    * Hawk Version
    */
   val HEADER_VERSION = 1
@@ -43,27 +48,12 @@ package object hawk {
 
   /**
    * List of supported hash algorithms. Passed as parameter
-   * to java.security.MessageDigest.getInstance()
+   * to `java.security.MessageDigest.getInstance()`
    */
   object HashAlgorithms extends Enumeration {
     val SHA1 = Value("SHA-1")
     val SHA256 = Value("SHA-256")
   }
-
-  sealed trait HawkHashAlgorithms {
-    val hmacAlgo: MacAlgorithms.Value
-    val hashAlgo: HashAlgorithms.Value
-  }
-
-  /**
-   * Used to specify SHA1 as the algorithm to use for encryption of a user's credentials
-   */
-  case object HawkSHA1 extends HawkHashAlgorithms { val hmacAlgo = MacAlgorithms.HmacSHA1; val hashAlgo = HashAlgorithms.SHA1 }
-
-  /**
-   * Used to specify SHA256 as the algorithm to use for encryption of a user's credentials
-   */
-  case object HawkSHA256 extends HawkHashAlgorithms { val hmacAlgo = MacAlgorithms.HmacSHA256; val hashAlgo = HashAlgorithms.SHA256 }
 
   /**
    * Timestamp type

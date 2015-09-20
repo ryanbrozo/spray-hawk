@@ -30,15 +30,26 @@ import spray.http.HttpEntity.{Empty, NonEmpty}
 import spray.http.{HttpMessage, HttpResponse, HttpRequest}
 
 /**
- * HawkRequest.scala
+ * Class that extracts parameters relevant to Hawk authentication from a Spray HttpRequest instance.
  *
- * Created by rye on 9/15/15.
+ * @param request Spray HttpRequest instance to extract information to from
  */
-case class HawkRequest(request: HttpRequest, withPayloadValidation: Boolean = true)
+private [hawk] case class HawkRequest(request: HttpRequest)
   extends Util {
 
+  /**
+   * Hawk options extracted from the request (host, port, uri, and method)
+   */
   lazy val requestAttributes: RequestAttributes = RequestAttributes(request)
+
+  /**
+   * Hawk options extracted from Authorization header (id, ts, nonce, hash, ext, and mac)
+   */
   lazy val authHeaderAttributes: AuthHeaderAttributes = AuthHeaderAttributes(request)
+
+  /**
+   * Complete options used to calculate HMAC of the request. Basically consists of requestAttributes and authHeaderAttributes
+   */
   lazy val providedOptions: HawkOptions = {
     Map(
       HawkOptionKeys.Method -> Option(requestAttributes.method),
@@ -51,6 +62,9 @@ case class HawkRequest(request: HttpRequest, withPayloadValidation: Boolean = tr
       HawkOptionKeys.Hash -> authHeaderAttributes.hash).collect { case (k, Some(v)) => k -> v }
   }
 
+  /**
+   * Payload associated with the request with associated media type
+   */
   lazy val payload: Option[(Array[Byte], String)] = extractPayload(request)
 }
 

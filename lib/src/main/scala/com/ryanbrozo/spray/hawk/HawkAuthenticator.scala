@@ -75,7 +75,7 @@ object HawkAuthenticator {
 }
 
 /**
- * A ContextAuthenticator passed to Spray that validates the credentials passed via the HTTP `Authorization` header
+ * A `ContextAuthenticator` passed to Spray that validates the credentials passed via the HTTP `Authorization` header
  * using the Hawk Authentication protocol to authenticate the user and extract a user object.
  *
  * Example usage:
@@ -88,7 +88,7 @@ object HawkAuthenticator {
  * // Our user credentials retriever. Currently it returns 'Bob' along with his hawk credentials
  * val userCredentialsRetriever: UserRetriever[User] = { id =>
  *     Future.successful {
- *       if (id == "dh37fgj492je") Some(User("Bob", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256))
+ *       if (id == "dh37fgj492je") Some(User("Bob", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkHashAlgorithms.HawkSHA256))
  *       else None
  *     }
  * }
@@ -124,7 +124,7 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider, non
   
   import HawkAuthenticator._
 
-  val SCHEME = "Hawk"
+  val SCHEME = HEADER_NAME
 
   private def validateCredentials(hawkUserOption: Option[U], hawkRequest: HawkRequest): \/[HawkError, Option[U]] = {
 

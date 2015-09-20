@@ -34,7 +34,7 @@ import org.specs2.mutable._
  */
 class HawkSpec extends Specification {
 
-  val credentials = HawkCredentials("id", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256)
+  val credentials = HawkCredentials("id", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkHashAlgorithms.HawkSHA256)
 
   "Hawk header implementation" should {
     "return a valid normalized string" in {

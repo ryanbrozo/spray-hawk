@@ -29,7 +29,7 @@ import javax.crypto.spec.SecretKeySpec
 
 import org.parboiled.common.Base64
 
-object Hawk {
+private[hawk] object Hawk {
   val TYPE_HEADER = "header"
   val TYPE_RESPONSE = "response"
   val TYPE_BEWIT = "bewit"
@@ -78,7 +78,7 @@ private[hawk] case class Hawk(credentials: HawkUser, options: HawkOptions, typeS
 
     val appDlg = for (app ← options.get(App); dlg ← options.get(Dlg)) yield s"$app\n$dlg\n"
 
-    s"""hawk.$HEADER_VERSION.$typeString
+    s"""${HEADER_NAME.toLowerCase}.$HEADER_VERSION.$typeString
         |${options.getOrElse(Ts, "")}
         |${options.getOrElse(Nonce, "")}
         |${options.getOrElse(Method, "")}

@@ -16,7 +16,7 @@ case class User(name: String, key: String, algorithm: HawkHashAlgorithms) extend
 // Our user credentials retriever. Currently it returns 'Bob' along with his hawk credentials
 val userCredentialsRetriever: UserRetriever[User] = { id =>
     Future.successful {
-      if (id == "dh37fgj492je") Some(User("Bob", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256))
+      if (id == "dh37fgj492je") Some(User("Bob", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkHashAlgorithms.HawkSHA256))
       else None
     }
 }
@@ -24,17 +24,20 @@ val userCredentialsRetriever: UserRetriever[User] = { id =>
 val hawkAuthenticator = HawkAuthenticator("hawk-test", userCredentialsRetriever)
 
 startServer(interface = "localhost", port = 8080) {
-  path("secured") {
-    authenticate(hawkAuthenticator) { user =>
-      get {
-        complete {
-          s"Welcome to spray, ${user.name}!"
-        }
-      } ~
-      post {
-        entity(as[String]) { body =>
+  // Add Server-Authorization header for response payload validation
+  withHawkServerAuthHeader(userCredentialsRetriever) {
+    path("secured") {
+      authenticate(hawkAuthenticator) { user =>
+        get {
           complete {
-            s"Welcome to spray, ${user.name}! Your post body was: $body"
+            s"Welcome to spray, ${user.name}!"
+          }
+        } ~
+        post {
+          entity(as[String]) { body =>
+            complete {
+              s"Welcome to spray, ${user.name}! Your post body was: $body"
+            }
           }
         }
       }
@@ -46,7 +49,7 @@ startServer(interface = "localhost", port = 8080) {
 
 ##### GET Request
 ``` scala
-val hawkCreds = HawkCredentials("dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256)
+val hawkCreds = HawkCredentials("dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkHashAlgorithms.HawkSHA256)
 
 val pipeline =
   addHawkCredentials("hawk-client")(hawkCreds) ~>
@@ -69,7 +72,7 @@ responseFuture onComplete {
 
 ##### POST Request with payload validation
 ``` scala
-val hawkCreds = HawkCredentials("dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256)
+val hawkCreds = HawkCredentials("dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkHashAlgorithms.HawkSHA256)
 
 val pipeline =
   addHawkCredentials("hawk-client")(hawkCreds, withPayloadValidation = true) ~>

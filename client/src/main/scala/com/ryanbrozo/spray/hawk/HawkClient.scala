@@ -47,7 +47,7 @@ object HawkClient extends App with HawkRequestBuilding {
    */
   import system.dispatcher
 
-  val hawkCreds = HawkCredentials("dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256)
+  val hawkCreds = HawkCredentials("dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkHashAlgorithms.HawkSHA256)
 
   val getPipeline =
     addHawkCredentials("hawk-client")(hawkCreds, withPayloadValidation = true) ~>

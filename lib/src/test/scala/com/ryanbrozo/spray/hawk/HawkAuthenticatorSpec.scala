@@ -69,7 +69,7 @@ class HawkAuthenticatorSpec
   /**
    * Hawk user to be used in tests
    */
-  val hawkUser = User("Bob", "dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkSHA256)
+  val hawkUser = User("Bob", "dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkHashAlgorithms.HawkSHA256)
 
   /**
    * Test Realm 
@@ -189,6 +189,14 @@ class HawkAuthenticatorSpec
     "mac" -> "fmzTiKheFFqAeWWoVIt6vIflByB9X8TeYQjCdvq9bf4=")
   )
 
+  val invalidHawkCredentialsScheme = GenericHttpCredentials("Hawkz", Map(
+    "id" -> "dh37fgj492je",
+    "ts" -> defaultTime.toString,
+    "nonce" -> "j4h3g2",
+    "ext" -> "some-app-ext-data",
+    "mac" -> "6R4rV5iE+NPoym+WwjeHzjAGXUtLNIxmo1vpMofpLAE=")
+  )
+
 
 
 
@@ -267,6 +275,15 @@ class HawkAuthenticatorSpec
         }
       } ~> check {
         rejection === AuthenticationFailedRejection(CredentialsRejected, challengeHeadersWithTimestamp)
+      }
+    }
+    "reject unauthenticated requests with invalid Authorization header scheme with an AuthorizationFailedRejection" in {
+      Get("http://example.com:8000/resource/1?b=1&a=2") ~> Authorization(invalidHawkCredentialsScheme) ~> {
+        authenticate(hawkDoAuthTimeAgnostic) { user =>
+          complete(user.name)
+        }
+      } ~> check {
+        rejection === AuthenticationFailedRejection(CredentialsRejected, challengeHeaders)
       }
     }
     "extract the object representing the user identity created by successful authentication in a POST request (with payload validation)" in {

@@ -24,7 +24,6 @@
 
 package com.ryanbrozo.spray.hawk
 
-import com.ryanbrozo.spray.hawk.Util._
 import spray.http.HttpHeaders.RawHeader
 import spray.http.{HttpHeaders, HttpRequest}
 import spray.httpx.RequestBuilding
@@ -118,7 +117,7 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
       .collect({ case (k, Some(v)) => k.toString + "=" + "\"" + v + "\"" })
       .mkString(", ")
 
-    HttpHeaders.RawHeader("Authorization", s"Hawk $authHeader")
+    HttpHeaders.RawHeader("Authorization", s"$HEADER_NAME $authHeader")
   }
 
   /**

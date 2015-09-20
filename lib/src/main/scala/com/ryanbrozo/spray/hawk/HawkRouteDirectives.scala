@@ -26,7 +26,6 @@
 
 package com.ryanbrozo.spray.hawk
 
-import com.ryanbrozo.spray.hawk.Util._
 import com.typesafe.config.ConfigFactory
 import spray.http.HttpHeaders.RawHeader
 import spray.http.{HttpHeaders, HttpRequest, HttpResponse}
@@ -39,18 +38,16 @@ import scala.language.{implicitConversions, postfixOps}
 import scala.util.Try
 
 /**
- * HawkRouteDirectives.scala
+ * Magnet used to construct our route directives. See http://spray.io/blog/2012-12-13-the-magnet-pattern/ for more info
  *
- * Created by rye on 9/10/15.
  */
-
-sealed trait HawkRouteDirectivesMagnet {
+private[hawk] sealed trait HawkRouteDirectivesMagnet {
   type Out
 
   def apply(): Out
 }
 
-object HawkRouteDirectivesMagnet
+private[hawk] object HawkRouteDirectivesMagnet
   extends BasicDirectives
   with Util {
 
@@ -59,8 +56,7 @@ object HawkRouteDirectivesMagnet
   private[hawk] val _serverAuthorizationExt = _conf.getString("spray.hawk.serverAuthorizationExt")
   private[hawk] val _maxUserRetrieverTimeInSeconds = _conf.getLong("spray.hawk.maxUserRetrieverTimeInSeconds") seconds
 
-  private def generateServerAuthHeader(request: HttpRequest, response: HttpResponse, id: String, timestampProvider: TimeStampProvider,
-                                       nonceProvider: NonceProvider, ext: ExtData, credentials: HawkUser): RawHeader = {
+  private def generateServerAuthHeader(request: HttpRequest, response: HttpResponse, ext: ExtData, credentials: HawkUser): RawHeader = {
     // Compute 'hash' param?
     val payloadHashOption = extractPayload(response) map {
       case (payload, contentType) => HawkPayload(payload, contentType, credentials.algorithm.hashAlgo).hash
@@ -68,7 +64,7 @@ object HawkRouteDirectivesMagnet
 
     val hawkRequest = HawkRequest(request)
 
-    // Replace the ext and hash options
+    // Replace the ext and hash options. See https://github.com/hueniverse/hawk#response-payload-validation
     val updatedOptions = hawkRequest.providedOptions
       .updated(HawkOptionKeys.Ext, ext)
       .updated(HawkOptionKeys.Hash, payloadHashOption.getOrElse(""))
@@ -85,7 +81,7 @@ object HawkRouteDirectivesMagnet
       .collect({ case (k, Some(v)) => k.toString + "=" + "\"" + v + "\"" })
       .mkString(", ")
 
-    HttpHeaders.RawHeader("Server-Authorization", s"Hawk $authHeader")
+    HttpHeaders.RawHeader("Server-Authorization", s"$HEADER_NAME $authHeader")
   }
 
   implicit def fromUserRetriever[U <: HawkUser](userRetriever: UserRetriever[U])(implicit executionContext: ExecutionContext) = new HawkRouteDirectivesMagnet {
@@ -102,8 +98,7 @@ object HawkRouteDirectivesMagnet
           case scala.util.Success(userFuture) =>
             val f = userFuture map {
               case Some(user) =>
-                val serverAuthHeader = generateServerAuthHeader(ctx.request, resp, hawkRequest.authHeaderAttributes.id, Util.defaultTimestampProvider,
-                  Util.defaultNonceGenerator, _serverAuthorizationExt, user)
+                val serverAuthHeader = generateServerAuthHeader(ctx.request, resp, _serverAuthorizationExt, user)
                 resp.mapHeaders(serverAuthHeader :: _)
               case None => resp
             }
@@ -116,6 +111,54 @@ object HawkRouteDirectivesMagnet
   }
 }
 
+/**
+ * Contains directives that are used with `spray-routing` to produce Hawk-Authenttication specific request and response transformations
+ */
 trait HawkRouteDirectives {
+  /**
+   * Adds a Server-Authorization header to the responses. This header is provided so it can be validated whether clients are talking to
+   * the right server. See the [[https://github.com/hueniverse/hawk#response-payload-validation Response Payload Validation]] section of
+   * Hawk's specification more more details
+   *
+   * {{{
+// Our User model. This needs to extend the HawkUser trait for our UserCredentialsRetriever
+// to work
+case class User(name: String, key: String, algorithm: HawkHashAlgorithms) extends HawkUser
+
+// Our user credentials retriever. Currently it returns 'Bob' along with his hawk credentials
+val userCredentialsRetriever: UserRetriever[User] = { id =>
+    Future.successful {
+      if (id == "dh37fgj492je") Some(User("Bob", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkHashAlgorithms.HawkSHA256))
+      else None
+    }
+}
+
+val hawkAuthenticator = HawkAuthenticator("hawk-test", userCredentialsRetriever)
+
+startServer(interface = "localhost", port = 8080) {
+  // Add Server-Authorization header for response payload validation
+  withHawkServerAuthHeader(userCredentialsRetriever) {
+    path("secured") {
+      authenticate(hawkAuthenticator) { user =>
+        get {
+          complete {
+            s"Welcome to spray, \${user.name}!"
+          }
+        } ~
+        post {
+          entity(as[String]) { body =>
+            complete {
+              s"Welcome to spray, \${user.name}! Your post body was: \$body"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+   * }}}
+   *
+   * @param magnet User-retriver function conforming to [[UserRetriever]]
+   */
   def withHawkServerAuthHeader(magnet: HawkRouteDirectivesMagnet) = magnet()
 }

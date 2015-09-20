@@ -42,7 +42,7 @@ private[hawk] case class HawkPayload(payload: Array[Byte], contentType: String, 
    * Normalized request string
    */
   private[hawk] lazy val normalized: String = {
-    s"""hawk.$HEADER_VERSION.payload
+    s"""${HEADER_NAME.toLowerCase}.$HEADER_VERSION.payload
      |${contentType.toLowerCase}
      |${new String(payload, "UTF-8")}
      |""".stripMargin

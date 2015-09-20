@@ -24,17 +24,13 @@
 
 package com.ryanbrozo.spray.hawk
 
-import com.ryanbrozo.spray.hawk.Util.PartialHawkOptions
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.StrictLogging
 import spray.caching.ExpiringLruCache
 import spray.http.HttpEntity.{Empty, NonEmpty}
-import spray.http.HttpHeaders.RawHeader
 import spray.http._
-import spray.http.Uri.Query
 
 import scala.compat.Platform
-import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.{implicitConversions, postfixOps}
 import scala.util.Random
@@ -44,8 +40,6 @@ import scala.util.Random
   */
 
 object Util {
-
-  private[hawk] case class PartialHawkOptions(method: HttpMethod, uri: Uri)
 
   private val MINIMUM_NONCE_LENGTH = 6
 
@@ -65,10 +59,6 @@ object Util {
   private val _timeToLiveInSeconds= _timeToIdleInSeconds + (1 second)
 
   private val _cache = new ExpiringLruCache[TimeStamp](_maxCacheCapacity, _initialCacheCapacity, _timeToLiveInSeconds, _timeToIdleInSeconds)
-
-  private[hawk] implicit def toPartialHawkOptions(req: HttpRequest): PartialHawkOptions = {
-    PartialHawkOptions(req.method, req.uri)
-  }
 
   /**
    * Default nonce validator. Uses an in-memory cache to validate nonces
@@ -119,81 +109,6 @@ object Util {
 }
 
 private[hawk] trait Util extends StrictLogging {
-
-  /**
-    * Represents a function that extracts a parameter
-    * from a map
-    */
-  private[hawk] type ParameterExtractor = AuthHeaderKeys.Value => Option[String]
-
-
-  /**
-   * Produces an instance of HawkOptions that will be used to verify the
-   * Authorization header
-   *
-   * @param req Spray HttpRequest instance
-   * @param extractor Extractor function that extracts hawk parameters from the Authorization header
-   * @return Extracted options wrapped as an Option
-   */
-  private[hawk] def extractHawkOptions(req: HttpRequest, extractor: ParameterExtractor): HawkOptions = {
-    extractHawkOptions(req, req, extractor)
-  }
-
-  /**
-    * Produces an instance of HawkOptions that will be used to verify the
-    * Authorization header
-    *
-    * @param partialOps Partial hawk options which is extracted from a Spray HttpRequest instance, if mesg is
-    *                   particularly an HttpResponse instance
-    * @param mesg Spray HttpMessage instance to extract hawk parameters from
-    * @param extractor Extractor function that extracts hawk parameters from the Authorization header
-    * @return Extracted options wrapped as an Option
-    */
-  private[hawk] def extractHawkOptions(partialOps: PartialHawkOptions, mesg: HttpMessage, extractor: ParameterExtractor): HawkOptions = {
-    val xForwardedProtoHeader = mesg.headers.find {
-      case h: RawHeader if h.lowercaseName == "x-forwarded-proto" => true
-      case _ => false
-    }
-    val ts = extractor(AuthHeaderKeys.Ts).getOrElse("")
-    val ext = extractor(AuthHeaderKeys.Ext).getOrElse("")
-    val nonce = extractor(AuthHeaderKeys.Nonce).getOrElse("")
-    val hashOption = extractor(AuthHeaderKeys.Hash)
-    val method = partialOps.method.toString()
-    val rawUri = partialOps.uri
-
-    // Spray URI separates path from additional query parameters
-    // so we should append a '?' if query parameters are present
-    val uri = rawUri.path.toString() + (rawUri.query match {
-      case Query.Empty => ""
-      case x: Query => s"?${x.toString()}"
-    })
-    val host = rawUri.authority.host.toString.toLowerCase
-    val port = rawUri.authority.port match {
-      case i if i > 0 => i
-      case 0 =>
-        // Need to determine which scheme to use. Check if we have X-Forwarded-Proto
-        // header set (usually by reverse proxies). Use this instead of original
-        // scheme when present
-        val scheme = xForwardedProtoHeader match {
-          case Some(header) => header.value
-          case None => rawUri.scheme
-        }
-        scheme match {
-          case "http" => 80
-          case "https" => 443
-          case _ => 0
-        }
-    }
-    Map(
-      HawkOptionKeys.Method -> Option(method),
-      HawkOptionKeys.Uri -> Option(uri),
-      HawkOptionKeys.Host -> Option(host),
-      HawkOptionKeys.Port -> Option(port.toString),
-      HawkOptionKeys.Ts -> Option(ts),
-      HawkOptionKeys.Nonce -> Option(nonce),
-      HawkOptionKeys.Ext -> Option(ext),
-      HawkOptionKeys.Hash -> hashOption).collect { case (k, Some(v)) => k -> v }
-  }
 
   /**
     * Extracts payload information that is essential for Hawk payload validation from a message

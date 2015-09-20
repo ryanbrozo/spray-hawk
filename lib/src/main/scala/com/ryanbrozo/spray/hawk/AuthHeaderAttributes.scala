@@ -26,23 +26,24 @@
 
 package com.ryanbrozo.spray.hawk
 
-import spray.http.HttpHeaders.{Authorization, RawHeader}
+import spray.http.HttpHeaders.Authorization
 import spray.http.{GenericHttpCredentials, HttpRequest}
-import spray.http.Uri.Query
 import spray.util._
 
-
-
-
-
+/**
+ * Abstracts access to attributes specific to a Hawk Authorization header. Given an HttpRequest, this class extracts the
+ * `Authorization` header attributes
+ *
+ * @param request Spray HttpRequest to extract attributes from.
+ */
 private[hawk] case class AuthHeaderAttributes(request: HttpRequest) {
   import AuthHeaderKeys._
 
-  private val authHeader = request.headers.findByType[`Authorization`]
+  private val authHeader: Option[Authorization] = request.headers.findByType[`Authorization`]
   private val credentials = authHeader.map {
     case Authorization(creds) => creds
   } flatMap {
-    case creds: GenericHttpCredentials => Option(creds)
+    case creds: GenericHttpCredentials if creds.scheme == HEADER_NAME => Option(creds)
     case _ => None
   }
 

@@ -26,36 +26,19 @@
 
 package com.ryanbrozo.spray.hawk
 
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
+sealed trait HawkHashAlgorithms {
+  val hmacAlgo: MacAlgorithms.Value
+  val hashAlgo: HashAlgorithms.Value
+}
 
-import org.parboiled.common.Base64
-
-/**
- * Class that represents a Hawk timestamp MAC and is used when the server to send timestamp
- * information to the client. The current server timestamp (ts) and its MAC digest (tsm) calculated
- * using the same client credentials are sent when a client tries to authenticate and its timestamp
- * parameter does not fall within the server's allowable window
- *
- * Created by rye on 2/6/15.
- */
-private[hawk] case class HawkTimestamp(ts: Long, credentials: HawkUser) {
+object HawkHashAlgorithms {
+  /**
+   * Used to specify SHA1 as the algorithm to use for encryption of a user's credentials
+   */
+  case object HawkSHA1 extends HawkHashAlgorithms { val hmacAlgo = MacAlgorithms.HmacSHA1; val hashAlgo = HashAlgorithms.SHA1 }
 
   /**
-   * Normalized string that will be used for calculating the MAC
+   * Used to specify SHA256 as the algorithm to use for encryption of a user's credentials
    */
-  private lazy val normalized: String = {
-    s"""${HEADER_NAME.toLowerCase}.$HEADER_VERSION.ts
-      |$ts
-      |""".stripMargin
-  }
-
-  /**
-   * Calculated MAC
-   */
-  lazy val mac: String = {
-    val mac = Mac.getInstance(credentials.algorithm.hmacAlgo.toString)
-    mac.init(new SecretKeySpec(credentials.key.getBytes("UTF-8"), credentials.algorithm.hmacAlgo.toString))
-    Base64.rfc2045().encodeToString(mac.doFinal(normalized.getBytes("UTF-8")), false)
-  }
+  case object HawkSHA256 extends HawkHashAlgorithms { val hmacAlgo = MacAlgorithms.HmacSHA256; val hashAlgo = HashAlgorithms.SHA256 }
 }

@@ -31,12 +31,18 @@ import spray.http.HttpRequest
 import spray.http.Uri.Query
 
 /**
- * RequestAttributes.scala
+ * Abstracts access to request attributes specific to Hawk Authentication. Given an HttpRequest, this class extracts the
+ * `host`, `port`, `uri`, and `method` parameters necessary to compute the HMAC of a request.
  *
  * Created by rye on 9/15/15.
  */
 private[hawk] case class RequestAttributes(request: HttpRequest){
 
+  /**
+   * Determines if the request comes from a proxy server or not. Usually, proxy servers includes the original protocol used
+   * in the request via the X-Forwarded-Proto header. If this header is present, we should use this instead of the current request's
+   * inherent protocol
+   */
   private val xForwardedProtoHeader = request.headers.find {
     case h: RawHeader if h.lowercaseName == "x-forwarded-proto" => true
     case _ => false
