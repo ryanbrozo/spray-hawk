@@ -113,7 +113,7 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
       AuthHeaderKeys.Hash -> payloadHashOption
     )
       .collect({ case (k, Some(v)) => k.toString + "=" + "\"" + v + "\"" })
-      .mkString(",")
+      .mkString(", ")
 
     HttpHeaders.RawHeader("Authorization", s"Hawk $authHeader")
   }

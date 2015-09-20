@@ -56,38 +56,28 @@ object HawkRouteDirectivesMagnet
   private def generateServerAuthHeader(request: HttpRequest, response: HttpResponse, id: String, timestampProvider: TimeStampProvider,
                                        nonceProvider: NonceProvider, ext: ExtData, credentials: HawkUser): RawHeader = {
     // Do we need to compute 'hash' param?
-    val payloadHashOption =
-      extractPayload(response) map {
-        case (payload, contentType) => HawkPayload(payload, contentType, credentials.algorithm.hashAlgo).hash
-      }
+    val payloadHashOption = extractPayload(response) map {
+      case (payload, contentType) => HawkPayload(payload, contentType, credentials.algorithm.hashAlgo).hash
+    }
 
-    // First, let's extract URI-related hawk options
-    val hawkOptions = extractHawkOptions(request, response, { _ => None })
+    val hawkRequest = HawkRequest(request)
 
-    // Then add our user-specified parameters
-    val ts = timestampProvider().toString
-    val nonce = nonceProvider()
-    val updatedOptions = hawkOptions ++ Map(
-      HawkOptionKeys.Ts -> Option(ts),
-      HawkOptionKeys.Nonce -> Option(nonce),
-      HawkOptionKeys.Ext -> Option(ext),
-      HawkOptionKeys.Hash -> payloadHashOption
-    ).collect { case (k, Some(v)) => k -> v }
+    // Replace the ext and hash options
+    val updatedOptions = hawkRequest.providedOptions
+      .updated(HawkOptionKeys.Ext, ext)
+      .updated(HawkOptionKeys.Hash, payloadHashOption.getOrElse(""))
 
     // Compute our MAC
     val mac = Hawk(credentials, updatedOptions, Hawk.TYPE_RESPONSE).mac
 
     // Then create our Hawk Authorization header
     val authHeader = Map(
-      AuthHeaderKeys.Id -> Option(id),
-      AuthHeaderKeys.Ts -> Option(ts),
-      AuthHeaderKeys.Nonce -> Option(nonce),
-      AuthHeaderKeys.Ext -> Option(ext),
       AuthHeaderKeys.Mac -> Option(mac),
-      AuthHeaderKeys.Hash -> payloadHashOption
+      AuthHeaderKeys.Hash -> payloadHashOption,
+      AuthHeaderKeys.Ext -> Option(ext)
     )
       .collect({ case (k, Some(v)) => k.toString + "=" + "\"" + v + "\"" })
-      .mkString(",")
+      .mkString(", ")
 
     HttpHeaders.RawHeader("Server-Authorization", s"Hawk $authHeader")
   }
