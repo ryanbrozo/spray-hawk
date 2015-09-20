@@ -80,15 +80,18 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
    */
   protected def generateRawHeader(request: HttpRequest, timestampProvider: TimeStampProvider, nonceProvider: NonceProvider, ext: ExtData,
                                   credentials: HawkCredentials, withPayloadValidation: Boolean): RawHeader = {
+
+    val hawkRequest = HawkRequest(request)
+
     // Do we need to compute 'hash' param?
     val payloadHashOption = if (withPayloadValidation) {
-      extractPayload(request) map {
+      hawkRequest.payload map {
         case (payload, contentType) => HawkPayload(payload, contentType, credentials.algorithm.hashAlgo).hash
       }
     } else None
 
     // First, let's extract URI-related hawk options
-    val hawkOptions = extractHawkOptions(request, request,  { _ => None })
+    val hawkOptions = hawkRequest.providedOptions // extractHawkOptions(request, request,  { _ => None })
 
     // Then add our user-specified parameters
     val ts = timestampProvider().toString

@@ -55,7 +55,7 @@ object HawkRouteDirectivesMagnet
 
   private def generateServerAuthHeader(request: HttpRequest, response: HttpResponse, id: String, timestampProvider: TimeStampProvider,
                                        nonceProvider: NonceProvider, ext: ExtData, credentials: HawkUser): RawHeader = {
-    // Do we need to compute 'hash' param?
+    // Compute 'hash' param?
     val payloadHashOption = extractPayload(response) map {
       case (payload, contentType) => HawkPayload(payload, contentType, credentials.algorithm.hashAlgo).hash
     }
