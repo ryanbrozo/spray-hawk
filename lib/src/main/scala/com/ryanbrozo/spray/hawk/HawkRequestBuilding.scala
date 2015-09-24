@@ -90,7 +90,7 @@ trait HawkRequestBuilding extends RequestBuilding with Util {
     } else None
 
     // First, let's extract URI-related hawk options
-    val hawkOptions = hawkRequest.providedOptions // extractHawkOptions(request, request,  { _ => None })
+    val hawkOptions = hawkRequest.hawkOptions // extractHawkOptions(request, request,  { _ => None })
 
     // Then add our user-specified parameters
     val ts = timestampProvider().toString

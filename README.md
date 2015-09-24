@@ -112,7 +112,7 @@ The client will connect to same URL, and you should get a `Welcome to spray, Bob
 ####Features to be implemented
 * ~~[Replay Protection](https://github.com/ryanbrozo/spray-hawk/issues/1)~~
 * ~~[Response Payload Validation](https://github.com/ryanbrozo/spray-hawk/issues/3)~~
-* [Single URI Authorization](https://github.com/ryanbrozo/spray-hawk/issues/4)
+* ~~[Single URI Authorization](https://github.com/ryanbrozo/spray-hawk/issues/4)~~
 
 
 

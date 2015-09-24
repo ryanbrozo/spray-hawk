@@ -359,6 +359,25 @@ class HawkAuthenticatorSpec
         rejection === AuthenticationFailedRejection(CredentialsRejected, challengeHeaders)
       }
     }
+    "properly authenticate if authentication information is encoded in a bewit" in {
+      Get("http://example.com:8000/resource/1?b=1&a=2&bewit=ZGgzN2ZnajQ5MmplXDEzNTM4MzYyMzRcZ2tIRXZVU3VWVis5aEEzcnd6R2hadDM3RnlVZk5xdnNacHQzMHNoUGZFcz1cc3ByYXktaGF3aw%3D%3D") ~> {
+        authenticate(hawkDoAuthTimeAgnostic) { user =>
+          complete(user.name)
+        }
+      } ~> check {
+        responseAs[String] === "Bob"
+      }
+    }
+    "reject the request if both Authorization header and bewit parameter are present" in {
+      Get("http://example.com:8000/resource/1?b=1&a=2&bewit=ZGgzN2ZnajQ5MmplXDEzNTM4MzYyMzRcZ2tIRXZVU3VWVis5aEEzcnd6R2hadDM3RnlVZk5xdnNacHQzMHNoUGZFcz1cc3ByYXktaGF3aw%3D%3D") ~>
+        Authorization(hawkCredentials_GET_withPort) ~> {
+        authenticate(hawkDoAuthTimeAgnostic) { user =>
+          complete(user.name)
+        }
+      } ~> check {
+        rejection === AuthenticationFailedRejection(CredentialsRejected, challengeHeaders)
+      }
+    }
+    //TODO: More tests for bewit
   }
-
 }

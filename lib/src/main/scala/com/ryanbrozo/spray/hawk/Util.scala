@@ -28,6 +28,7 @@ import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.StrictLogging
 import spray.caching.ExpiringLruCache
 import spray.http.HttpEntity.{Empty, NonEmpty}
+import spray.http.Uri.Query
 import spray.http._
 
 import scala.compat.Platform
@@ -124,6 +125,15 @@ private[hawk] trait Util extends StrictLogging {
         Some((data, contentType))
       case Empty => None
     }
+  }
+
+  private[hawk] def extractUriString(uri: Uri): String = {
+    // Spray URI separates path from additional query parameters
+    // so we should append a '?' if query parameters are present
+    uri.path.toString() + (uri.query match {
+      case Query.Empty => ""
+      case x: Query => s"?${x.toString()}"
+    })
   }
 
 }
