@@ -43,24 +43,24 @@ private[hawk] case class RequestAttributes(request: HttpRequest) extends Util {
    * in the request via the X-Forwarded-Proto header. If this header is present, we should use this instead of the current request's
    * inherent protocol
    */
-  private val xForwardedProtoHeader = request.headers.find {
+  private val _xForwardedProtoHeader = request.headers.find {
     case h: RawHeader if h.lowercaseName == "x-forwarded-proto" => true
     case _ => false
   }
 
-  private val rawUri = request.uri
+  private val _rawUri = request.uri
 
   lazy val method: String = request.method.toString()
-  lazy val host: String = rawUri.authority.host.toString.toLowerCase
-  lazy val port: Int = rawUri.authority.port match {
+  lazy val host: String = _rawUri.authority.host.toString.toLowerCase
+  lazy val port: Int = _rawUri.authority.port match {
     case i if i > 0 => i
     case 0 =>
       // Need to determine which scheme to use. Check if we have X-Forwarded-Proto
       // header set (usually by reverse proxies). Use this instead of original
       // scheme when present
-      val scheme = xForwardedProtoHeader match {
+      val scheme = _xForwardedProtoHeader match {
         case Some(header) => header.value
-        case None         => rawUri.scheme
+        case None         => _rawUri.scheme
       }
       scheme match {
         case "http"  => 80
@@ -68,5 +68,5 @@ private[hawk] case class RequestAttributes(request: HttpRequest) extends Util {
         case _       => 0
       }
   }
-  lazy val uri: String = extractUriString(rawUri)
+  lazy val uri: String = extractUriString(_rawUri)
 }

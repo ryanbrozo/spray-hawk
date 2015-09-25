@@ -41,7 +41,7 @@ private[hawk] case class HawkPayload(payload: Array[Byte], contentType: String, 
   /**
    * Normalized request string
    */
-  private[hawk] lazy val normalized: String = {
+  private[hawk] lazy val _normalized: String = {
     s"""${HEADER_NAME.toLowerCase}.$HEADER_VERSION.payload
      |${contentType.toLowerCase}
      |${new String(payload, "UTF-8")}
@@ -53,6 +53,6 @@ private[hawk] case class HawkPayload(payload: Array[Byte], contentType: String, 
    */
   lazy val hash: String = {
     val digest = MessageDigest.getInstance(algorithm.toString)
-    Base64.rfc2045().encodeToString(digest.digest(normalized.getBytes("UTF-8")), false)
+    Base64.rfc2045().encodeToString(digest.digest(_normalized.getBytes("UTF-8")), false)
   }
 }

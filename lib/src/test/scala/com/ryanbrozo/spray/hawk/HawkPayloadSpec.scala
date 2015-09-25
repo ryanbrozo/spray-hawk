@@ -36,7 +36,7 @@ class HawkPayloadSpec extends Specification {
   "Hawk payload implementation" should {
     "produce the correct normalized string in given example with payload validation from Hawk readme" in {
       HawkPayload("Thank you for flying Hawk".getBytes("UTF-8"), "text/plain", HashAlgorithms.SHA256)
-        .normalized must beEqualTo(
+        ._normalized must beEqualTo(
         """hawk.1.payload
           |text/plain
           |Thank you for flying Hawk

@@ -53,7 +53,8 @@ private [hawk] case class HawkRequest(request: HttpRequest)
   lazy val bewitAttributes: BewitAttributes = BewitAttributes(request)
 
   /**
-   * Complete options used to calculate HMAC of the request. Basically consists of requestAttributes and authHeaderAttributes
+   * Complete options used to calculate HMAC of the request via the Authorization header.
+   * Basically consists of requestAttributes and authHeaderAttributes
    */
   lazy val hawkOptions: HawkOptions = {
     Map(
@@ -67,8 +68,13 @@ private [hawk] case class HawkRequest(request: HttpRequest)
       HawkOptionKeys.Hash -> authHeaderAttributes.hash).collect { case (k, Some(v)) => k -> v }
   }
 
+  /**
+   * Complete options used to calculate HMAC of the request via the bewit parameter.
+   */
   lazy val bewitOptions: HawkOptions = {
     Map(
+      // Hard-coded get, since bewit-based auth should only be GET.
+      // Don't obtain method from our request
       HawkOptionKeys.Method -> Some("GET"),
       HawkOptionKeys.Uri -> Option(bewitAttributes.uriWithoutBewit),
       HawkOptionKeys.Host -> Option(requestAttributes.host),

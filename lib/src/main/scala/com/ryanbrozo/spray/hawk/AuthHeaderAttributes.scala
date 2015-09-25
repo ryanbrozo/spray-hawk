@@ -39,18 +39,18 @@ import spray.util._
 private[hawk] case class AuthHeaderAttributes(request: HttpRequest) {
   import AuthHeaderKeys._
 
-  private lazy val authHeader: Option[Authorization] = request.headers.findByType[`Authorization`]
+  private lazy val _authHeader: Option[Authorization] = request.headers.findByType[`Authorization`]
 
-  lazy val isPresent: Boolean = authHeader.isDefined
+  lazy val isPresent: Boolean = _authHeader.isDefined
 
-  private lazy val credentials = authHeader.map {
+  private lazy val _credentials = _authHeader.map {
     case Authorization(creds) => creds
   } flatMap {
     case creds: GenericHttpCredentials if creds.scheme == HEADER_NAME => Option(creds)
     case _ => None
   }
 
-  private lazy val extractor = credentials map extractAuthKey
+  private lazy val _extractor = _credentials map extractAuthKey
 
   /**
    * Extracts a key from the Authorization header
@@ -62,13 +62,13 @@ private[hawk] case class AuthHeaderAttributes(request: HttpRequest) {
   private def extractAuthKey(credentials: GenericHttpCredentials)(key: AuthHeaderKeys.Value): Option[String] =
     credentials.params.get(key.toString)
 
-  lazy val id: String = extractor flatMap {_(Id)} getOrElse ""
-  private lazy val tsOption: Option[String] = extractor flatMap {_(Ts)}
-  lazy val ts: TimeStamp = tsOption map {_.toLong} getOrElse 0
-  lazy val nonce: Option[Nonce] = extractor flatMap {_(Nonce)}
-  lazy val hash: Option[String] = extractor flatMap {_(Hash)}
-  lazy val ext: Option[ExtData] = extractor flatMap {_(Ext)}
-  lazy val mac: Option[String] = extractor flatMap {_(Mac)}
+  lazy val id: String = _extractor flatMap {_(Id)} getOrElse ""
+  private lazy val _tsOption: Option[String] = _extractor flatMap {_(Ts)}
+  lazy val ts: TimeStamp = _tsOption map {_.toLong} getOrElse 0
+  lazy val nonce: Option[Nonce] = _extractor flatMap {_(Nonce)}
+  lazy val hash: Option[String] = _extractor flatMap {_(Hash)}
+  lazy val ext: Option[ExtData] = _extractor flatMap {_(Ext)}
+  lazy val mac: Option[String] = _extractor flatMap {_(Mac)}
 }
 
 

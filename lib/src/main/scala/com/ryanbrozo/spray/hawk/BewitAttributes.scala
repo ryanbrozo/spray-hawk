@@ -42,21 +42,21 @@ private[hawk] case class BewitAttributes(request: HttpRequest) extends Util {
 
   private val BEWIT_PARAM = "bewit"
 
-  private lazy val base64BewitOption: Option[String] = request.uri.query.get(BEWIT_PARAM)
-  private lazy val bewitArray: Array[String] =
-    base64BewitOption
+  private lazy val _base64BewitOption: Option[String] = request.uri.query.get(BEWIT_PARAM)
+  private lazy val _bewitArray: Array[String] =
+    _base64BewitOption
       .map { base64Bewit => new String(Base64.rfc2045().decode(base64Bewit), "UTF-8").split('\\') }
       .getOrElse(Array())
 
-  lazy val id: String = bewitArray(0)
-  lazy val exp: Long = bewitArray(1).toLong
-  lazy val mac: String = bewitArray(2)
-  lazy val ext: String = bewitArray(3)
+  lazy val id: String = _bewitArray(0)
+  lazy val exp: Long = _bewitArray(1).toLong
+  lazy val mac: String = _bewitArray(2)
+  lazy val ext: String = _bewitArray(3)
 
   /**
    * Determines whether a bewit query parameter is present in the request
    */
-  lazy val isPresent: Boolean = base64BewitOption.isDefined
+  lazy val isPresent: Boolean = _base64BewitOption.isDefined
 
   /**
    * Determines whether request has a valid bewit. Unencrypted bewit should be in the form
@@ -68,13 +68,13 @@ private[hawk] case class BewitAttributes(request: HttpRequest) extends Util {
    */
   lazy val isValid: Either[HawkRejection, Boolean] = {
     // Check if bewit can be Base64 decoded
-    val t = Try { bewitArray }
+    val t = Try { _bewitArray }
     t match {
       case Failure(e) =>
         Left(InvalidBewitEncodingRejection)
       case Success(_) =>
         // Length of bewit array should be exactly 4
-        if (bewitArray.length != 4)
+        if (_bewitArray.length != 4)
           Left(InvalidBewitStructureRejection)
         // Make sure not any of the bewit components are missing
         else if (id.trim == "" || exp.toString.trim == "" || mac.trim == "" || ext.trim == "")

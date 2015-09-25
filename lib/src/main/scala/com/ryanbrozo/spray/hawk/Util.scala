@@ -46,7 +46,7 @@ object Util {
 
   private val _conf = ConfigFactory.load()
 
-  private val nonceLength = {
+  private val _nonceLength = {
     val v = _conf.getInt("spray.hawk.nonceLength")
     if (v < MINIMUM_NONCE_LENGTH) MINIMUM_NONCE_LENGTH else v
   }
@@ -96,7 +96,7 @@ object Util {
    *
    * @return Random string of length defined in the configuration file.
    */
-  def defaultNonceGenerator(): Nonce = Random.alphanumeric.take(nonceLength).mkString
+  def defaultNonceGenerator(): Nonce = Random.alphanumeric.take(_nonceLength).mkString
 
   /**
    * Default nonce validator. Doesn't really validate nonces and just returns True

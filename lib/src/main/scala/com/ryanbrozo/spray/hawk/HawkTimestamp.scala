@@ -44,7 +44,7 @@ private[hawk] case class HawkTimestamp(ts: Long, credentials: HawkUser) {
   /**
    * Normalized string that will be used for calculating the MAC
    */
-  private lazy val normalized: String = {
+  private lazy val _normalized: String = {
     s"""${HEADER_NAME.toLowerCase}.$HEADER_VERSION.ts
       |$ts
       |""".stripMargin
@@ -56,6 +56,6 @@ private[hawk] case class HawkTimestamp(ts: Long, credentials: HawkUser) {
   lazy val mac: String = {
     val mac = Mac.getInstance(credentials.algorithm.hmacAlgo.toString)
     mac.init(new SecretKeySpec(credentials.key.getBytes("UTF-8"), credentials.algorithm.hmacAlgo.toString))
-    Base64.rfc2045().encodeToString(mac.doFinal(normalized.getBytes("UTF-8")), false)
+    Base64.rfc2045().encodeToString(mac.doFinal(_normalized.getBytes("UTF-8")), false)
   }
 }

@@ -73,7 +73,7 @@ private[hawk] case class Hawk(credentials: HawkUser, options: HawkOptions, typeS
   /**
    * Normalized string that will be used for calculating the MAC
    */
-  private[hawk] lazy val normalized: String = {
+  private[hawk] lazy val _normalized: String = {
     import com.ryanbrozo.spray.hawk.HawkOptionKeys._
 
     val appDlg = for (app ← options.get(App); dlg ← options.get(Dlg)) yield s"$app\n$dlg\n"
@@ -96,6 +96,6 @@ private[hawk] case class Hawk(credentials: HawkUser, options: HawkOptions, typeS
   lazy val mac: String = {
     val mac = Mac.getInstance(credentials.algorithm.hmacAlgo.toString)
     mac.init(new SecretKeySpec(credentials.key.getBytes("UTF-8"), credentials.algorithm.hmacAlgo.toString))
-    Base64.rfc2045().encodeToString(mac.doFinal(normalized.getBytes("UTF-8")), false)
+    Base64.rfc2045().encodeToString(mac.doFinal(_normalized.getBytes("UTF-8")), false)
   }
 }
