@@ -225,33 +225,54 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider, non
     // See https://github.com/spray/spray/issues/938 for more details
 
     val hawkRequest = HawkRequest(httpRequest)
-    val userTry = Try {
-      // Assume the supplied userRetriever function can throw an exception
-      userRetriever(hawkRequest.authHeaderAttributes.id)
+    val default = `WWW-Authenticate`(HttpChallenge(SCHEME, realm)) :: Nil
+
+    def validate(id: String, validateFunc: (Option[U], HawkRequest) => \/[HawkRejection, Option[U]]): List[HttpHeader] = {
+      val userTry = Try {
+        // Assume the supplied userRetriever function can throw an exception
+        userRetriever(hawkRequest.authHeaderAttributes.id)
+      }
+      userTry match {
+        case scala.util.Success(userFuture) =>
+          val f = userFuture map { validateAuthHeaderCredentials(_, hawkRequest) } map {
+            case -\/(err:StaleTimestampRejection) =>
+              val currentTimestamp = timestampProvider()
+              val params = Map(
+                "ts" -> currentTimestamp.toString,
+                "tsm" -> HawkTimestamp(currentTimestamp, err.hawkUser).mac,
+                "error" -> err.message
+              )
+              `WWW-Authenticate`(HttpChallenge(SCHEME, realm, params)) :: Nil
+            case _ =>
+              default
+          }
+          Await.result(f, _maxUserRetrieverTimeInSeconds)
+        case scala.util.Failure(e) =>
+          logger.warn(s"An error occurred while retrieving a hawk user: ${e.getMessage}")
+          default
+      }
     }
-    userTry match {
-      case scala.util.Success(userFuture) =>
-        val f = userFuture map { validateAuthHeaderCredentials(_, hawkRequest) } map {
-          case -\/(err:StaleTimestampRejection) =>
-            val currentTimestamp = timestampProvider()
-            val params = Map(
-              "ts" -> currentTimestamp.toString,
-              "tsm" -> HawkTimestamp(currentTimestamp, err.hawkUser).mac,
-              "error" -> err.message
-            )
-            `WWW-Authenticate`(HttpChallenge(SCHEME, realm, params)) :: Nil
-          case _ =>
-            `WWW-Authenticate`(HttpChallenge(SCHEME, realm)) :: Nil
+
+    // Determine whether to use bewit parameter or Authorization header
+    // Request should not have both
+    if (hawkRequest.hasBewit && hawkRequest.hasAuthorizationHeader) {
+      default
+    }
+    else {
+      // Ensure bewit is valid
+      if (hawkRequest.hasBewit) {
+        if (!hawkRequest.bewitAttributes.isValid.isRight) {
+          default
         }
-        Await.result(f, _maxUserRetrieverTimeInSeconds)
-      case scala.util.Failure(e) =>
-        logger.warn(s"An error occurred while retrieving a hawk user: ${e.getMessage}")
-        `WWW-Authenticate`(HttpChallenge(SCHEME, realm)) :: Nil
+        else validate(hawkRequest.bewitAttributes.id, validateBewitCredentials)
+      }
+      else validate(hawkRequest.authHeaderAttributes.id, validateAuthHeaderCredentials)
     }
   }
 
   override def authenticate(credentials: Option[HttpCredentials], ctx: RequestContext): Future[Option[U]] = {
     val hawkRequest = HawkRequest(ctx.request)
+    val default = Future.successful(None)
 
     def validate(id: String, validateFunc: (Option[U], HawkRequest) => \/[HawkRejection, Option[U]]): Future[Option[U]] = {
       val userTry = Try {
@@ -266,7 +287,7 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider, non
           }
         case scala.util.Failure(e) =>
           logger.warn(s"An error occurred while retrieving a hawk user: ${e.getMessage}")
-          Future.successful(None)
+          default
       }
     }
 
@@ -274,14 +295,14 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider, non
     // Request should not have both
     if (hawkRequest.hasBewit && hawkRequest.hasAuthorizationHeader) {
       // TODO: Find a way to return MultipleAuthenticationRejection
-      Future.successful(None)
+      default
     }
     else {
       // Ensure bewit is valid
       if (hawkRequest.hasBewit) {
         if (!hawkRequest.bewitAttributes.isValid.isRight) {
           // TODO: Find a way to return bewit validation rejection
-          Future.successful(None)
+          default
         }
         else validate(hawkRequest.bewitAttributes.id, validateBewitCredentials)
       }

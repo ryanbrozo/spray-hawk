@@ -29,11 +29,9 @@ import spray.http.HttpHeaders.RawHeader
 import spray.http._
 
 /**
- * HawkRequestBuildingSpec.scala
- *
- * Created by rye on 12/4/14 6:32 PM.
+ * RequestBuildingSpec.scala * Created by rye on 12/4/14 6:32 PM.
  */
-class HawkRequestBuildingSpec extends Specification with HawkRequestBuilding {
+class RequestBuildingSpec extends Specification with HawkRequestBuilding {
 
   val hawkCreds = HawkCredentials("dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkHashAlgorithms.HawkSHA256)
 

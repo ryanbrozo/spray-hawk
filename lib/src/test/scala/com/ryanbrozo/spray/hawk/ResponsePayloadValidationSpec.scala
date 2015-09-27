@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2014 Ryan C. Brozo
+ * Copyright (c) 2015 Ryan C. Brozo
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,31 +20,38 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
  */
 
 package com.ryanbrozo.spray.hawk
 
-import org.specs2.mutable._
+import spray.http.ContentType
+import spray.http.HttpHeaders.{RawHeader, Authorization, `Content-Type`}
 
 /**
- * HawkPayloadSpec.scala
+ * ResponsePayloadValidationSpec.scala
  *
- * Created by rye on 12/2/14.
+ * Created by rye on 9/27/15.
  */
-class HawkPayloadSpec extends Specification {
+class ResponsePayloadValidationSpec
+  extends HawkSpec
+  with HawkRouteDirectives {
 
-  "Hawk payload implementation" should {
-    "produce the correct normalized string in given example with payload validation from Hawk readme" in {
-      HawkPayload("Thank you for flying Hawk".getBytes("UTF-8"), "text/plain", HashAlgorithms.SHA256)
-        ._normalized must beEqualTo(
-        """hawk.1.payload
-          |text/plain
-          |Thank you for flying Hawk
-          |""".stripMargin)
-    }
-    "produce the correct MAC in given example with payload validation from Hawk readme" in {
-      HawkPayload("Thank you for flying Hawk".getBytes("UTF-8"), "text/plain", HashAlgorithms.SHA256)
-        .hash must beEqualTo("Yi9LfIIFRtBEPt74PVmbTF/xVAwPn7ub15ePICfgnuY=")
+  "The 'authenticate(HawkAuthenticator)' directive" should {
+    "produce a valid Server-Authorization header" in {
+      Post("http://example.com:8000/resource/1?b=1&a=2", "Thank you for flying Hawk") ~>
+        `Content-Type`(ContentType(spray.http.MediaTypes.`text/plain`)) ~>
+        Authorization(hawkCredentials_POST_withPortWithPayload) ~> {
+        withHawkServerAuthHeader(userRetrieverDoAuth) {
+          authenticate(hawkDoAuthTimeAgnostic) { user =>
+            complete(user.name)
+          }
+        }
+      } ~> check {
+        responseAs[String] === "Bob"
+        header("Server-Authorization") ===
+          Some(RawHeader("Server-Authorization", """Hawk mac="I9Oj+qFu18fxyemIgw3RFV2CYKhRtkvskVxWsFx+fYU=", hash="adQztfXWuBrabtDCkK9innCGU4dCILx6ecq+b6JjUbc=", ext="spray-hawk""""))
+      }
     }
   }
 }

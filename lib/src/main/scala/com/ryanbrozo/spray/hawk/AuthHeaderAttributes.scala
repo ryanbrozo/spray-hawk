@@ -39,15 +39,17 @@ import spray.util._
 private[hawk] case class AuthHeaderAttributes(request: HttpRequest) {
   import AuthHeaderKeys._
 
-  private lazy val _authHeader: Option[Authorization] = request.headers.findByType[`Authorization`]
+  private lazy val _authHeader: Option[Authorization] = request.headers
+    .findByType[`Authorization`]
+    .filter {
+      case Authorization(creds: GenericHttpCredentials) => creds.scheme == HEADER_NAME
+      case _ => false
+    }
 
   lazy val isPresent: Boolean = _authHeader.isDefined
 
   private lazy val _credentials = _authHeader.map {
-    case Authorization(creds) => creds
-  } flatMap {
-    case creds: GenericHttpCredentials if creds.scheme == HEADER_NAME => Option(creds)
-    case _ => None
+    case Authorization(creds: GenericHttpCredentials) => creds
   }
 
   private lazy val _extractor = _credentials map extractAuthKey
