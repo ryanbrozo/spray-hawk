@@ -24,9 +24,9 @@
 
 package com.ryanbrozo.spray.hawk
 
+import com.ryanbrozo.spray.hawk.HawkError._
 import spray.http.HttpHeaders._
 import spray.http._
-import spray.routing.AuthenticationFailedRejection.{CredentialsMissing, CredentialsRejected}
 import spray.routing._
 
 class HawkAuthenticatorSpec
@@ -39,7 +39,7 @@ class HawkAuthenticatorSpec
           complete(user.name)
         }
       } ~> check {
-        rejection === AuthenticationFailedRejection(CredentialsMissing, challengeHeaders)
+        rejection === produceHawkRejection(CredentialsMissingError)
       }
     }
     "reject unauthenticated requests with Authorization header with an AuthorizationFailedRejection" in {
@@ -47,7 +47,7 @@ class HawkAuthenticatorSpec
         authenticate(hawkDontAuth) { user =>
           complete(user.name)
         } ~> check {
-        rejection === AuthenticationFailedRejection(CredentialsRejected, challengeHeaders)
+        rejection === produceHawkRejection(InvalidCredentialsError)
       }
     }
     "reject incorrect mac in Authorization header with an AuthorizationFailedRejection" in {
@@ -56,7 +56,7 @@ class HawkAuthenticatorSpec
           complete(user.name)
         }
       } ~> check {
-        rejection === AuthenticationFailedRejection(CredentialsRejected, challengeHeaders)
+        rejection === produceHawkRejection(InvalidMacError)
       }
     }
     "extract the object representing the user identity created by successful authentication" in {
@@ -87,12 +87,11 @@ class HawkAuthenticatorSpec
           complete(user.name)
         }
       } ~> check {
-        rejection === AuthenticationFailedRejection(CredentialsRejected, challengeHeaders)
+        rejection === produceHawkRejection(CredentialsMissingError)
       }
     }
 
     "properly handle exceptions thrown in its inner route" in {
-      object TestException extends spray.util.SingletonException
       Get("http://example.com:8000/resource/1?b=1&a=2") ~> Authorization(hawkCredentials_GET_withPort) ~> {
         handleExceptions(ExceptionHandler.default) {
           authenticate(hawkDoAuthTimeAgnostic) { _ => throw TestException}
@@ -117,7 +116,7 @@ class HawkAuthenticatorSpec
           complete(user.name)
         }
       } ~> check {
-        rejection === AuthenticationFailedRejection(CredentialsRejected, challengeHeaders)
+        rejection === produceHawkRejection(UserRetrievalError(TestException))
       }
     }
   }

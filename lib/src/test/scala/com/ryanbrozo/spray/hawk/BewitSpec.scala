@@ -26,6 +26,7 @@
 
 package com.ryanbrozo.spray.hawk
 
+import com.ryanbrozo.spray.hawk.HawkError.MultipleAuthenticationError
 import spray.http.BasicHttpCredentials
 import spray.http.HttpHeaders.Authorization
 import spray.routing.AuthenticationFailedRejection
@@ -54,7 +55,7 @@ class BewitSpec
           complete(user.name)
         }
       } ~> check {
-        rejection === AuthenticationFailedRejection(CredentialsRejected, challengeHeaders)
+        rejection === produceHawkRejection(MultipleAuthenticationError)
       }
     }
     "properly authenticate if both bewit is and an Authentication header with scheme other than Hawk is present" in {

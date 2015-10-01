@@ -25,33 +25,13 @@
 
 package com.ryanbrozo.spray.hawk
 
-import com.ryanbrozo.spray.hawk.HawkError._
-import spray.http.HttpHeaders.Authorization
+import spray.routing.RejectionHandler
+import spray.routing.Directives._
 
-/**
- * ReplayProtectionSpec.scala
- *
- * Created by rye on 9/27/15.
- */
-class ReplayProtectionSpec
-  extends HawkSpec {
-
-  "The 'authenticate(HawkAuthenticator)' directive" should {
-    "reject requests when nonce is non-unique" in {
-      Get("http://example.com:8000/resource/1?b=1&a=2") ~> Authorization(hawkCredentials_GET_withPort) ~> {
-        authenticate(hawkDoAuthTimeAgnosticValidatesNonce) { user =>
-          complete(user.name)
-        }
-      } ~> check {
-        responseAs[String] === "Bob"
-      }
-      Get("http://example.com:8000/resource/1?b=1&a=2") ~> Authorization(hawkCredentials_GET_withPort) ~> {
-        authenticate(hawkDoAuthTimeAgnosticValidatesNonce) { user =>
-          complete(user.name)
-        }
-      } ~> check {
-        rejection === produceHawkRejection(InvalidNonceError)
-      }
-    }
+trait Implicits {
+  implicit val hawkRejectionHandler = RejectionHandler {
+    case HawkRejection(error, _) :: _ =>
+      complete(error.code, error.message)
   }
+
 }

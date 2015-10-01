@@ -26,10 +26,9 @@
 
 package com.ryanbrozo.spray.hawk
 
+import com.ryanbrozo.spray.hawk.HawkError._
 import spray.http.ContentType
 import spray.http.HttpHeaders.{Authorization, `Content-Type`}
-import spray.routing.AuthenticationFailedRejection
-import spray.routing.AuthenticationFailedRejection.CredentialsRejected
 
 /**
  * PayloadValidationSpec.scala
@@ -48,7 +47,7 @@ class PayloadValidationSpec
           complete(user.name)
         }
       } ~> check {
-        rejection === AuthenticationFailedRejection(CredentialsRejected, challengeHeaders)
+        rejection === produceHawkRejection(InvalidPayloadHashError)
       }
     }
 

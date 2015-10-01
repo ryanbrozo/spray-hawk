@@ -27,7 +27,7 @@
 package com.ryanbrozo.spray.hawk
 
 import org.specs2.mutable.Specification
-import spray.http.{GenericHttpCredentials, HttpChallenge}
+import spray.http.{HttpHeader, GenericHttpCredentials, HttpChallenge}
 import spray.http.HttpHeaders.`WWW-Authenticate`
 import spray.routing.{HttpService, Directives}
 import spray.testkit.Specs2RouteTest
@@ -43,6 +43,8 @@ abstract class HawkSpec
   with Specs2RouteTest
   with Directives
   with HttpService {
+
+  object TestException extends spray.util.SingletonException
 
   implicit val routeTestTimeout = RouteTestTimeout(FiniteDuration(60, SECONDS))
 
@@ -91,7 +93,7 @@ abstract class HawkSpec
   /**
    * A UserRetriever that always throws an exception
    */
-  val userRetrieverThrowException: UserRetriever[User] = { _ => throw new Exception("Cannot retrieve a user") }
+  val userRetrieverThrowException: UserRetriever[User] = { _ => throw TestException }
 
   /**
    * A Hawk authenticator which always does not authenticates. Timestamp generator is not relevant since this
@@ -119,19 +121,34 @@ abstract class HawkSpec
   })
 
   /**
-   * Expected challenge header when requesst is rejected
+   * Produces a WWW-Authenticate header
+   * @param params Map of additional attributes to be added to the WWW-Authenticate header
+   * @return WWW-Authenticate header
    */
-  val challengeHeaders = `WWW-Authenticate`(HttpChallenge("Hawk", realm, Map.empty)) :: Nil
+  def produceWwwAuthHeader(params: Map[String, String]): List[HttpHeader] = {
+    `WWW-Authenticate`(HttpChallenge("Hawk", realm, params)) :: Nil
+  }
 
+  /**
+   * Produce a WWW-Authenticate header with additional error attribute
+   * @param error Error string
+   */
+  def produceWwwAuthHeader(error: String): List[HttpHeader] = produceWwwAuthHeader(Map("error" -> error))
+
+  def produceHawkRejection(hawkError: HawkError): HawkRejection = {
+    HawkRejection(hawkError, produceWwwAuthHeader(hawkError.message))
+  }
+
+  val challengeHeaders = produceWwwAuthHeader(Map.empty[String, String])
 
   /**
    * Expected challenge header when request is rejected because of timestamp
    */
-  val challengeHeadersWithTimestamp = `WWW-Authenticate`(HttpChallenge("Hawk", realm, Map(
+  val challengeHeadersWithTimestamp = produceWwwAuthHeader(Map(
     "ts" → defaultTime.toString,
     "tsm" -> "2mw1eh/qXzl0wJZ/E6XvBhRMEJN7L3j8AyMA8eItEb0=",
     "error" -> "Stale timestamp"
-  ))) :: Nil
+  ))
 
   /**
    * Example payload

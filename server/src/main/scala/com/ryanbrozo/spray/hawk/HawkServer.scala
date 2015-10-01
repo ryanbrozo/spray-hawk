@@ -1,11 +1,10 @@
 package com.ryanbrozo.spray.hawk
 
 import akka.actor.ActorSystem
-import spray.http.HttpHeaders.RawHeader
 import spray.routing.SimpleRoutingApp
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 /**
  * Spray server that demonstrates Hawk authentication. You can access it via http://localhost:8080/secured
@@ -38,19 +37,21 @@ object HawkServer extends App
     // Add Server-Authorization header for response payload validation
     withHawkServerAuthHeader(userCredentialsRetriever) {
       path("secured") {
-        authenticate(hawkAuthenticator) { user =>
-          get {
-            complete {
-              s"Welcome to spray, ${user.name}!"
-            }
-          } ~
-            post {
-              entity(as[String]) { body =>
-                complete {
-                  s"Welcome to spray, ${user.name}! Your post body was: $body"
+        handleRejections(hawkRejectionHandler) {
+          authenticate(hawkAuthenticator) { user =>
+            get {
+              complete {
+                s"Welcome to spray, ${user.name}!"
+              }
+            } ~
+              post {
+                entity(as[String]) { body =>
+                  complete {
+                    s"Welcome to spray, ${user.name}! Your post body was: $body"
+                  }
                 }
               }
-            }
+          }
         }
       }
     }

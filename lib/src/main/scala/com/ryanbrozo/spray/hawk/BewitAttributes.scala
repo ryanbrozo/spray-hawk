@@ -26,7 +26,7 @@
 
 package com.ryanbrozo.spray.hawk
 
-import com.ryanbrozo.spray.hawk.HawkAuthenticator._
+import com.ryanbrozo.spray.hawk.HawkError._
 import org.parboiled.common.Base64
 import spray.http.HttpRequest
 
@@ -66,20 +66,20 @@ private[hawk] case class BewitAttributes(request: HttpRequest) extends Util {
    *
    * All fields should be present
    */
-  lazy val isValid: Either[HawkRejection, Boolean] = {
+  lazy val isInvalid: Option[HawkError] = {
     // Check if bewit can be Base64 decoded
     val t = Try { _bewitArray }
     t match {
       case Failure(e) =>
-        Left(InvalidBewitEncodingRejection)
+        Some(InvalidBewitEncodingError)
       case Success(_) =>
         // Length of bewit array should be exactly 4
         if (_bewitArray.length != 4)
-          Left(InvalidBewitStructureRejection)
+          Some(InvalidBewitStructureError)
         // Make sure not any of the bewit components are missing
         else if (id.trim == "" || exp.toString.trim == "" || mac.trim == "" || ext.trim == "")
-          Left(MissingBewitAttributesRejection)
-        else Right(true)
+          Some(MissingBewitAttributesError)
+        else None
     }
   }
 

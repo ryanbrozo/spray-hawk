@@ -29,7 +29,8 @@ package com.ryanbrozo.spray.hawk
 import com.typesafe.config.ConfigFactory
 import spray.http.HttpHeaders.RawHeader
 import spray.http.{HttpHeaders, HttpRequest, HttpResponse}
-import spray.routing.Directive0
+import spray.routing.Directives._
+import spray.routing.{RejectionHandler, Directive0}
 import spray.routing.directives.BasicDirectives
 
 import scala.concurrent._
@@ -115,6 +116,12 @@ private[hawk] object HawkRouteDirectivesMagnet
  * Contains directives that are used with `spray-routing` to produce Hawk-Authenttication specific request and response transformations
  */
 trait HawkRouteDirectives {
+
+  implicit val hawkRejectionHandler = RejectionHandler {
+    case HawkRejection(error, _) :: _ =>
+      complete(error.code, error.message)
+  }
+
   /**
    * Adds a Server-Authorization header to the responses. This header is provided so it can be validated whether clients are talking to
    * the right server. See the [[https://github.com/hueniverse/hawk#response-payload-validation Response Payload Validation]] section of

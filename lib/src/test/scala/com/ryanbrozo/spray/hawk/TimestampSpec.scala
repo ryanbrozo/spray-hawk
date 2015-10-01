@@ -25,9 +25,8 @@
 
 package com.ryanbrozo.spray.hawk
 
+import com.ryanbrozo.spray.hawk.HawkError._
 import spray.http.HttpHeaders.Authorization
-import spray.routing.AuthenticationFailedRejection
-import spray.routing.AuthenticationFailedRejection.CredentialsRejected
 
 /**
  * TimestampSpec.scala
@@ -44,7 +43,11 @@ class TimestampSpec
           complete(user.name)
         }
       } ~> check {
-        rejection === AuthenticationFailedRejection(CredentialsRejected, challengeHeadersWithTimestamp)
+        rejection === HawkRejection(StaleTimestampError(hawkUser), produceWwwAuthHeader(Map(
+          "ts" → defaultTime.toString,
+          "tsm" -> "2mw1eh/qXzl0wJZ/E6XvBhRMEJN7L3j8AyMA8eItEb0=",
+          "error" -> StaleTimestampError(hawkUser).message
+        )))
       }
     }
     "reject requests with client timestamps more than the allowable server timeframe" in {
@@ -53,7 +56,11 @@ class TimestampSpec
           complete(user.name)
         }
       } ~> check {
-        rejection === AuthenticationFailedRejection(CredentialsRejected, challengeHeadersWithTimestamp)
+        rejection === HawkRejection(StaleTimestampError(hawkUser), produceWwwAuthHeader(Map(
+          "ts" → defaultTime.toString,
+          "tsm" -> "2mw1eh/qXzl0wJZ/E6XvBhRMEJN7L3j8AyMA8eItEb0=",
+          "error" -> StaleTimestampError(hawkUser).message
+        )))
       }
     }
   }
