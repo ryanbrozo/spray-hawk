@@ -118,8 +118,10 @@ private[hawk] object HawkRouteDirectivesMagnet
 trait HawkRouteDirectives {
 
   implicit val hawkRejectionHandler = RejectionHandler {
-    case HawkRejection(error, _) :: _ =>
-      complete(error.code, error.message)
+    case HawkRejection(error, challengeHeaders) :: _ =>
+      respondWithHeaders(challengeHeaders) {
+        complete(error.code, error.message)
+      }
   }
 
   /**
