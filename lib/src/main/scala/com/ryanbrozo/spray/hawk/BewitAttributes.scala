@@ -49,7 +49,7 @@ private[hawk] case class BewitAttributes(request: HttpRequest) extends Util {
       .getOrElse(Array())
 
   lazy val id: String = _bewitArray(0)
-  lazy val exp: Long = _bewitArray(1).toLong
+  lazy val exp: Long = _bewitArray(1).toDouble.toLong
   lazy val mac: String = _bewitArray(2)
   lazy val ext: String = _bewitArray(3)
 

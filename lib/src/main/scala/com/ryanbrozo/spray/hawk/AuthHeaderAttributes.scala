@@ -66,7 +66,7 @@ private[hawk] case class AuthHeaderAttributes(request: HttpRequest) {
 
   lazy val id: String = _extractor flatMap {_(Id)} getOrElse ""
   private lazy val _tsOption: Option[String] = _extractor flatMap {_(Ts)}
-  lazy val ts: TimeStamp = _tsOption map {_.toLong} getOrElse 0
+  lazy val ts: TimeStamp = _tsOption map {_.toDouble.toLong} getOrElse 0
   lazy val nonce: Option[Nonce] = _extractor flatMap {_(Nonce)}
   lazy val hash: Option[String] = _extractor flatMap {_(Hash)}
   lazy val ext: Option[ExtData] = _extractor flatMap {_(Ext)}
