@@ -34,7 +34,37 @@ object BuildSettings {
     resolvers           ++= Seq(
       "Spray Repository"      at "http://repo.spray.io",
       "Typesafe Repository"   at "http://repo.typesafe.com/typesafe/releases/"
-    )
+    ),
+    licenses            := Seq("MIT License" -> url("http://www.opensource.org/licenses/mit-license.php")),
+    homepage            := Some(url("https://github.com/ryanbrozo/spray-hawk/")),
+    scmInfo             := Some(ScmInfo(
+      url("https://github.com/ryanbrozo/spray-hawk/"),
+      "scm:git:git@github.com:ryanbrozo/spray-hawk.git"
+    )),
+    description         := "spray-hawk is a library that adds Hawk Authentication to Spray.io. " +
+      "It can be used for both server-side (via spray-routing) and client-side (via spray-client)"
+  )
+
+  lazy val publishSettings = Seq(
+    publishMavenStyle   := true,
+    publishTo := {
+      val nexus = "https://oss.sonatype.org/"
+      if (isSnapshot.value)
+        Some("snapshots" at nexus + "content/repositories/snapshots")
+      else
+        Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+    },
+    publishArtifact in Test := false,
+    pomIncludeRepository := { _ => false },
+    pomExtra := (
+        <developers>
+          <developer>
+            <id>ryanbrozo</id>
+            <name>Ryan Brozo</name>
+            <email>https://github.com/ryanbrozo</email>
+          </developer>
+        </developers>
+      )
   )
 
   lazy val libSettings = Seq(
