@@ -13,7 +13,7 @@ Current version is **0.3**.
 * Spray 1.3.x
 
 ### Getting spray-hawk
-Scala Logging is published to Sonatype OSS and Maven Central. The following example shows how to add a dependency to the latest version of Scala Logging to your sbt build definition:
+*spray-hawk* is published to Sonatype OSS and Maven Central. The following example shows how to add a dependency to the latest version of Scala Logging to your sbt build definition:
 
 ``` scala
 libraryDependencies += "com.ryanbrozo" %% "spray-hawk-lib" % "0.3"
