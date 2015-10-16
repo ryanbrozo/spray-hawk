@@ -8,7 +8,18 @@ and client-side (via [spray-client](http://spray.io/documentation/1.2.2/spray-cl
 
 Current version is **0.3**. 
 
-####Server Usage Example:
+### Prerequisites
+* Scala 2.11.x
+* Spray 1.3.x
+
+### Getting spray-hawk
+Scala Logging is published to Sonatype OSS and Maven Central. The following example shows how to add a dependency to the latest version of Scala Logging to your sbt build definition:
+
+``` scala
+libraryDependencies += "com.ryanbrozo" %% "spray-hawk-lib" % "0.3"
+```
+
+###Server Usage Example:
 ``` scala
 
 // Our User model. This needs to extend the HawkUser trait for our UserCredentialsRetriever
@@ -47,9 +58,9 @@ startServer(interface = "localhost", port = 8080) {
   }
 }
 ```
-####Client Usage Example:
+###Client Usage Example:
 
-##### GET Request
+#### GET Request
 ``` scala
 val hawkCreds = HawkCredentials("dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkHashAlgorithms.HawkSHA256)
 
@@ -72,7 +83,7 @@ responseFuture onComplete {
 }
 ```
 
-##### POST Request with payload validation
+#### POST Request with payload validation
 ``` scala
 val hawkCreds = HawkCredentials("dh37fgj492je", "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn", HawkHashAlgorithms.HawkSHA256)
 
@@ -95,21 +106,16 @@ responseFuture onComplete {
 }
 ```
 
-####Running the example code
-To run the server, you need SBT 0.13.x. Open a terminal window and run the following:
-```
-$ sbt ";project spray-hawk-server;run"
-```
-A secured site will be run in `http://localhost:8080/secured`. Opening the link in a web browser should show a `The resource requires authentication, which was not supplied with the request` message, indicating a 401
+### Getting Started
+Head towards the [Wiki](https://github.com/ryanbrozo/spray-hawk/wiki) to learn how to use the library inside your project.
 
-To run the client, open another terminal window and run the following:
-```
-$ sbt ";project spray-hawk-client;run"
-```
-The client will connect to same URL, and you should get a `Welcome to spray, Bob!` message
+### Changelog
 
-####Using spray-hawk
-(TODO)
+#### 0.3
+- Initial release
 
+### License
+
+This code is open source software licensed under the [MIT License](http://www.opensource.org/licenses/mit-license.php)
 
 
