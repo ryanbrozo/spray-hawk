@@ -16,7 +16,6 @@ object BuildDependencies {
   val scalaLogging =    "com.typesafe.scala-logging"    %% "scala-logging"      % "3.1.0"
   val logback =         "ch.qos.logback"                %  "logback-classic"    % "1.0.13"
   val scalaXml =        "org.scala-lang.modules"        %% "scala-xml"          % "1.0.2"
-  val scalaz =          "org.scalaz"                    %% "scalaz-core"        % "7.1.3"
   val akkaActor =       "com.typesafe.akka"             %% "akka-actor"         % "2.3.6"
   val specs2 =          "org.specs2"                    %% "specs2-core"        % "2.4.13"        % "test"
 }
@@ -25,7 +24,7 @@ object BuildSettings {
   import BuildDependencies._
 
   val SCALA_VERSION = "2.11.4"
-  val APP_VERSION = "0.3"
+  val APP_VERSION = "0.4"
 
   lazy val commonSettings = Seq(
     organization        := "com.ryanbrozo",
@@ -69,8 +68,7 @@ object BuildSettings {
 
   lazy val libSettings = Seq(
     libraryDependencies ++= Seq(
-      scalaz,
-      sprayRouting,
+      sprayRouting % "provided",
       sprayCaching,
       akkaActor,
       scalaLogging,

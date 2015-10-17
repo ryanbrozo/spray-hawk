@@ -35,9 +35,7 @@ import spray.routing.authentication.ContextAuthenticator
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.language.{implicitConversions, postfixOps}
-import scala.util.Try
-import scalaz.Scalaz._
-import scalaz._
+import scala.util._
 
 object HawkAuthenticator {
 
@@ -132,36 +130,36 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider, non
    * @param hawkRequest HawkRequest instance
    * @return Either a HawkError or the validated HawkUser
    */
-  private def validateBewitCredentials(hawkUserOption: Option[U], hawkRequest: HawkRequest): \/[HawkError, U] = {
-    def checkMethod(implicit hawkUser: U): \/[HawkError, U] = {
+  private def validateBewitCredentials(hawkUserOption: Option[U], hawkRequest: HawkRequest): Either[HawkError, U] = {
+    def checkMethod(implicit hawkUser: U): Either[HawkError, U] = {
       if (hawkRequest.request.method != HttpMethods.GET)
-        InvalidMacError.left[U]
+        Left(InvalidMacError)
       else
-        hawkUser.right[HawkError]
+        Right(hawkUser)
     }
 
-    def checkExpiry(implicit hawkUser: U): \/[HawkError, U] = {
+    def checkExpiry(implicit hawkUser: U): Either[HawkError, U] = {
       val currentTimestamp = timestampProvider()
       if (hawkRequest.bewitAttributes.exp * 1000 <= currentTimestamp)
-        AccessExpiredError.left[U]
+        Left(AccessExpiredError)
       else
-        hawkUser.right[HawkError]
+        Right(hawkUser)
     }
 
-    def checkMac(implicit hawkUser: U): \/[HawkError, U] = {
+    def checkMac(implicit hawkUser: U): Either[HawkError, U] = {
       if (hawkRequest.bewitAttributes.mac != Hawk(hawkUser, hawkRequest.bewitOptions, Hawk.TYPE_BEWIT).mac)
-        InvalidMacError.left[U]
+        Left(InvalidMacError)
       else
-        hawkUser.right[HawkError]
+        Right(hawkUser)
     }
 
     hawkUserOption map { implicit hawkUser =>
       for {
-        methodOk <- checkMethod
-        expiryOk <- checkExpiry
-        macOk <- checkMac
+        methodOk <- checkMethod.right
+        expiryOk <- checkExpiry.right
+        macOk <- checkMac.right
       } yield expiryOk
-    } getOrElse InvalidCredentialsError.left[U]
+    } getOrElse Left(InvalidCredentialsError)
   }
 
   /**
@@ -171,15 +169,16 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider, non
    * @param hawkRequest HawkRequest instance
    * @return Either a HawkError or the validated HawkUser
    */
-  private def validateAuthHeaderCredentials(hawkUserOption: Option[U], hawkRequest: HawkRequest): \/[HawkError, U] = {
+  private def validateAuthHeaderCredentials(hawkUserOption: Option[U], hawkRequest: HawkRequest): Either[HawkError, U] = {
 
-    def checkMac(implicit hawkUser: U): \/[HawkError, U] = {
+    def checkMac(implicit hawkUser: U): Either[HawkError, U] = {
       (for {
         mac <- hawkRequest.authHeaderAttributes.mac if mac == Hawk(hawkUser, hawkRequest.hawkOptions, Hawk.TYPE_HEADER).mac
-      } yield hawkUser.right[HawkError]) | InvalidMacError.left[U]
+      } yield Right(hawkUser))
+        .getOrElse(Left(InvalidMacError))
     }
 
-    def checkPayload(implicit hawkUser: U): \/[HawkError, U] = {
+    def checkPayload(implicit hawkUser: U): Either[HawkError, U] = {
       hawkRequest.authHeaderAttributes.hash match {
         case Some(hash) if _payloadValidationEnabled =>
           // According to Hawk specs, payload validation should should only
@@ -188,43 +187,44 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider, non
             (payload, contentType) ← hawkRequest.payload
             hawkPayload ← Option(HawkPayload(payload, contentType, hawkUser.algorithm.hashAlgo))
             if hawkPayload.hash == hash
-          } yield hawkUser.right[HawkError]) | InvalidPayloadHashError.left[U]
+          } yield Right(hawkUser))
+            .getOrElse(Left(InvalidPayloadHashError))
         case _ =>
           // 'hash' is not supplied? then no payload validation is needed.
           // Return the obtained credentials
-          hawkUser.right[HawkError]
+          Right(hawkUser)
       }
     }
 
-    def checkNonce(implicit hawkUser: U): \/[HawkError, U] = {
+    def checkNonce(implicit hawkUser: U): Either[HawkError, U] = {
       hawkRequest.authHeaderAttributes.nonce match {
-        case Some(n) if nonceValidator(n, hawkUser.key, hawkRequest.authHeaderAttributes.ts) => hawkUser.right[HawkError]
-        case _ => InvalidNonceError.left[U]
+        case Some(n) if nonceValidator(n, hawkUser.key, hawkRequest.authHeaderAttributes.ts) => Right(hawkUser)
+        case _ => Left(InvalidNonceError)
       }
     }
 
-    def checkTimestamp(implicit hawkUser: U): \/[HawkError, U] = {
+    def checkTimestamp(implicit hawkUser: U): Either[HawkError, U] = {
       if (_timeSkewValidationEnabled) {
         val timestamp = hawkRequest.authHeaderAttributes.ts
         val currentTimestamp = timestampProvider()
         val lowerBound = currentTimestamp - _timeSkewInSeconds
         val upperBound = currentTimestamp + _timeSkewInSeconds
         if (lowerBound <= timestamp && timestamp <= upperBound)
-          hawkUser.right[HawkError]
+          Right(hawkUser)
         else
-          StaleTimestampError(hawkUser).left[U]
+          Left(StaleTimestampError(hawkUser))
       }
-      else hawkUser.right[HawkError]
+      else Right(hawkUser)
     }
 
     hawkUserOption map { implicit hawkUser =>
       for {
-        macOk <- checkMac
-        payloadOk <- checkPayload
-        nonceOk <- checkNonce
-        tsOk <- checkTimestamp
+        macOk <- checkMac.right
+        payloadOk <- checkPayload.right
+        nonceOk <- checkNonce.right
+        tsOk <- checkTimestamp.right
       } yield tsOk
-    } getOrElse InvalidCredentialsError.left[U]
+    } getOrElse Left(InvalidCredentialsError)
   }
 
   /**
@@ -259,18 +259,15 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider, non
    *         in a Future
    */
   private def authenticate(hawkRequest: HawkRequest): Future[Either[HawkError, U]] = {
-    def validate(id: String, validateFunc: (Option[U], HawkRequest) => \/[HawkError, U]): Future[Either[HawkError, U]] = {
+    def validate(id: String, validateFunc: (Option[U], HawkRequest) => Either[HawkError, U]): Future[Either[HawkError, U]] = {
       val userTry = Try {
         // Assume the supplied userRetriever function can throw an exception
         userRetriever(id)
       }
       userTry match {
-        case scala.util.Success(userFuture) =>
-          userFuture map { validateFunc(_, hawkRequest) } map {
-            case \/-(user) => Right(user)
-            case -\/(error) => Left(error)
-          }
-        case scala.util.Failure(e) =>
+        case Success(userFuture) =>
+          userFuture map { validateFunc(_, hawkRequest) }
+        case Failure(e) =>
           logger.warn(s"An error occurred while retrieving a hawk user: ${e.getMessage}")
           Future.successful(Left(UserRetrievalError(e)))
       }
