@@ -62,7 +62,7 @@ private [hawk] case class HawkRequest(request: HttpRequest)
       HawkOptionKeys.Uri -> Option(requestAttributes.uri),
       HawkOptionKeys.Host -> Option(requestAttributes.host),
       HawkOptionKeys.Port -> Option(requestAttributes.port.toString),
-      HawkOptionKeys.Ts -> Option(authHeaderAttributes.ts.toString),
+      HawkOptionKeys.Ts -> authHeaderAttributes.tsString,
       HawkOptionKeys.Nonce -> authHeaderAttributes.nonce,
       HawkOptionKeys.Ext -> authHeaderAttributes.ext,
       HawkOptionKeys.Hash -> authHeaderAttributes.hash).collect { case (k, Some(v)) => k -> v }
