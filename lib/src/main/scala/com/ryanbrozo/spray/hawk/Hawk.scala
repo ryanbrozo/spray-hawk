@@ -76,7 +76,7 @@ private[hawk] case class Hawk(credentials: HawkUser, options: HawkOptions, typeS
   private[hawk] lazy val _normalized: String = {
     import com.ryanbrozo.spray.hawk.HawkOptionKeys._
 
-    val appDlg = for (app ← options.get(App); dlg ← options.get(Dlg)) yield s"$app\n$dlg\n"
+    val appDlg = for (app <- options.get(App); dlg <- options.get(Dlg)) yield s"$app\n$dlg\n"
 
     s"""${HEADER_NAME.toLowerCase}.$HEADER_VERSION.$typeString
         |${options.getOrElse(Ts, "")}

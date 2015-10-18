@@ -63,8 +63,8 @@ object HawkClient extends App with HawkRequestBuilding {
   }
 
   val resultFuture: Future[(String, String)] = for {
-    get ← getResponseFuture
-    post ← postResponseFuture
+    get <- getResponseFuture
+    post <- postResponseFuture
   } yield (get, post)
 
   resultFuture onComplete {

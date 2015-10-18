@@ -113,7 +113,6 @@ package object hawk {
    */
   type UserRetriever[U <: HawkUser] = String => Future[Option[U]]
 
-
   /**
    * Represents a function that retrieves the current time expressed in
    * Unix time

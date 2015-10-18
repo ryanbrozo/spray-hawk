@@ -41,10 +41,10 @@ object HawkAuthenticator {
 
   private val _conf = ConfigFactory.load()
   
-  private[hawk] val _payloadValidationEnabled = _conf.getBoolean("spray.hawk.payloadValidation")
-  private[hawk] val _timeSkewValidationEnabled = _conf.getBoolean("spray.hawk.timeSkewValidation")
-  private[hawk] val _timeSkewInSeconds = _conf.getLong("spray.hawk.timeSkewInSeconds")
-  private[hawk] val _maxUserRetrieverTimeInSeconds = _conf.getLong("spray.hawk.maxUserRetrieverTimeInSeconds") seconds
+  private val _payloadValidationEnabled = _conf.getBoolean("spray.hawk.payloadValidation")
+  private val _timeSkewValidationEnabled = _conf.getBoolean("spray.hawk.timeSkewValidation")
+  private val _timeSkewInSeconds = _conf.getLong("spray.hawk.timeSkewInSeconds")
+  private val _maxUserRetrieverTimeInSeconds = _conf.getLong("spray.hawk.maxUserRetrieverTimeInSeconds") seconds
   
   def apply[U <: HawkUser](realm: String, userRetriever: UserRetriever[U])(implicit executionContext: ExecutionContext) =
     new HawkAuthenticator(Util.defaultTimestampProvider, Util.defaultNonceValidator)(realm, userRetriever)
@@ -118,8 +118,8 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider, non
   def apply(ctx: RequestContext) = {
     val hawkRequest = HawkRequest(ctx.request)
     authenticate(hawkRequest) map {
-      case Right(u) ⇒ Right(u)
-      case Left(e) ⇒ Left(HawkRejection(e, getChallengeHeaders(e)))
+      case Right(u) => Right(u)
+      case Left(e) => Left(HawkRejection(e, getChallengeHeaders(e)))
     }
   }
 
@@ -181,11 +181,9 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider, non
     def checkPayload(implicit hawkUser: U): Either[HawkError, U] = {
       hawkRequest.authHeaderAttributes.hash match {
         case Some(hash) if _payloadValidationEnabled =>
-          // According to Hawk specs, payload validation should should only
-          // happen if MAC is validated.
           (for {
-            (payload, contentType) ← hawkRequest.payload
-            hawkPayload ← Option(HawkPayload(payload, contentType, hawkUser.algorithm.hashAlgo))
+            (payload, contentType) <- hawkRequest.payload
+            hawkPayload <- Option(HawkPayload(payload, contentType, hawkUser.algorithm.hashAlgo))
             if hawkPayload.hash == hash
           } yield Right(hawkUser))
             .getOrElse(Left(InvalidPayloadHashError))
@@ -220,6 +218,8 @@ class HawkAuthenticator[U <: HawkUser](timestampProvider: TimeStampProvider, non
     hawkUserOption map { implicit hawkUser =>
       for {
         macOk <- checkMac.right
+        // According to Hawk specs, payload validation should should only
+        // happen if MAC is validated.
         payloadOk <- checkPayload.right
         nonceOk <- checkNonce.right
         tsOk <- checkTimestamp.right
