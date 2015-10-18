@@ -104,18 +104,18 @@ abstract class HawkSpec
   /**
    * A Hawk authenticator which always authenticates but does not depend on the current time
    */
-  val hawkDoAuthTimeAgnostic = HawkAuthenticator[User](defaultTimeGenerator _)(realm, userRetrieverDoAuth)
+  val hawkDoAuthTimeAgnostic = HawkAuthenticator[User](defaultTimeGenerator _, Util.stupidNonceValidator _)(realm, userRetrieverDoAuth)
 
   /**
    * A Hawk authenticator which throws an exception
    */
-  val hawkDoAuthWithException = HawkAuthenticator[User](defaultTimeGenerator _)(realm, userRetrieverThrowException)
+  val hawkDoAuthWithException = HawkAuthenticator[User](defaultTimeGenerator _, Util.stupidNonceValidator _)(realm, userRetrieverThrowException)
 
   /**
    * A Hawk authenticator which always authenticates but checks for validity of nonces
    */
   val hawkDoAuthTimeAgnosticValidatesNonce = HawkAuthenticator[User](
-    defaultTimeGenerator _, Util.cachingNonceValidator _)(realm,
+    defaultTimeGenerator _, Util.defaultNonceValidator _)(realm,
   { _ =>
     Future.successful(Some(hawkUser))
   })

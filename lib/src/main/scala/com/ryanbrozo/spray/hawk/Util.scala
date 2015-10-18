@@ -69,7 +69,7 @@ object Util {
    * @param ts timestamp
    * @return True, if nonce is valid. False, if not
    */
-  def cachingNonceValidator(nonce: Nonce, key: Key, ts: TimeStamp): Boolean = {
+  def defaultNonceValidator(nonce: Nonce, key: Key, ts: TimeStamp): Boolean = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
     val cacheKey = s"${nonce}_${key}_$ts"
@@ -99,14 +99,14 @@ object Util {
   def defaultNonceGenerator(): Nonce = Random.alphanumeric.take(_nonceLength).mkString
 
   /**
-   * Default nonce validator. Doesn't really validate nonces and just returns True
+   * Non-validating nonce validator (wut?). Doesn't really validate nonces and just returns True
    *
    * @param nonce Nonce to valiaate
    * @param key Key identifier
    * @param ts timestamp
    * @return True everytime
    */
-  def defaultNonceValidator(nonce: Nonce, key: Key, ts: TimeStamp): Boolean = true
+  def stupidNonceValidator(nonce: Nonce, key: Key, ts: TimeStamp): Boolean = true
 }
 
 private[hawk] trait Util extends StrictLogging {
